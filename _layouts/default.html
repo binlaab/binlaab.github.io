@@ -74,12 +74,12 @@ layout: compress
 
 
 {% if page.url == '/' %}
-  <script src="{{ site.baseurl }}/assets/js/simple-jekyll-search.js"></script>
+  <script src="{{ site.url }}/assets/js/simple-jekyll-search.js"></script>
   <script>
     var sjs = SimpleJekyllSearch({
       searchInput: document.getElementById('search-input'),
       resultsContainer: document.getElementById('search-results'),
-      json: '{{ site.baseurl }}/search.json',
+      json: '{{ site.url }}/search.json',
       searchResultTemplate: '<li><a href="{url}" title="{desc}">{title}</a></li>',
       noResultsText: 'No results found..',
       limit: 10,
