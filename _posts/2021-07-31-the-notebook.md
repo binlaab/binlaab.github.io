@@ -31,7 +31,7 @@ Nmap done at Sat Jul 17 13:53:27 2021 -- 1 IP address (1 host up) scanned in 9.4
 Bueno, puertos 22(SSH, nada por ahí) y 80(HTTP)
 
 En el HTTP encontramos una página web con un panel de inicio de sesión y registro. 
-![Página web al entrar](images/thenotebook/web.png)
+![](https://github.com/binlaab/binlaab.github.io/raw/main/_posts/images/thenotebook/web.png "Página web")
 
 Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.
 
