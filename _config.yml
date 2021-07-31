@@ -1,7 +1,6 @@
-site: Gesko
-title: Gesko
-description: >-
-  just a minimalist, personal blog
+site: BinLAB
+title: BinLAB
+description: >- mi blog, nada más
 googlewebfonts: Fira+Code:wght@400;500;700
 lang: en-US
 timezone: Rome
@@ -11,18 +10,14 @@ data-theme: dark # default theme "dark" | "light"
 author:
   name: p0wex
   bio: just a minimalist, personal blog
-  username: p0wex # general username
-  github: p0wex # github username
-  twitter: P0Wex # twitter username
+  username: binlaab # general username
+  github: binlaab # github username
+  twitter: JrPikoleto # twitter username
   email: your-email@email.com # email adress
 
 # URL settings
-url: "https://powex.ml" #
-baseurl: "/Gesko" # leave blank if not wishd
-permalink: "https://powex.ml/Gesko/"
-permalink: pretty 
-
-
+url: "https://binlaab.github.io" #
+# baseurl: "/Gesko" # leave blank if not wishd
 markdown: kramdown
 kramdown:
   input: GFM
