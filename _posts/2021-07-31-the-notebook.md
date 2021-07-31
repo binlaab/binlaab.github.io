@@ -32,6 +32,7 @@ Bueno, puertos 22(SSH, nada por ahí) y 80(HTTP)
 
 En el HTTP encontramos una página web con un panel de inicio de sesión y registro. 
 ![alt text][web]
+
 [web]: https://github.com/binlaab/binlaab.github.io/raw/main/_posts/images/thenotebook/web.png "Entrada a la página web"
 
 Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.
