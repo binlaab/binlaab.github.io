@@ -8,7 +8,7 @@ Como siempre, comenzamos escaneando los puertos de la máquina para saber a qué
 nmap -p- --open --min-rate 3000 -sS -sC -sV 10.10.10.230 -oN targeted
 `
 
-`# Nmap 7.91 scan initiated Sat Jul 17 13:53:17 2021 as: nmap -sC -sV -p22,80 -oN targeted 10.10.10.230
+` Nmap 7.91 scan initiated Sat Jul 17 13:53:17 2021 as: nmap -sC -sV -p22,80 -oN targeted 10.10.10.230
 Nmap scan report for 10.10.10.230
 Host is up (0.047s latency).
 
