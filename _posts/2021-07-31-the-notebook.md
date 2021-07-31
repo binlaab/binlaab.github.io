@@ -8,8 +8,8 @@ Como siempre, comenzamos escaneando los puertos de la máquina para saber a qué
 nmap -p- --open --min-rate 3000 -sS -sC -sV 10.10.10.230 -oN targeted
 `
 
-` 
-Nmap 7.91 scan initiated Sat Jul 17 13:53:17 2021 as: nmap -sC -sV -p22,80 -oN targeted 10.10.10.230
+``
+Nmap 7.91 scan initiated Sat Jul 17 13:53:17 2021 as: nmap -p- --open --min-rate 3000 -sS -sC -sV 10.10.10.230 -oN targeted
 Nmap scan report for 10.10.10.230
 Host is up (0.047s latency).
 
@@ -26,7 +26,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done at Sat Jul 17 13:53:27 2021 -- 1 IP address (1 host up) scanned in 9.49 seconds
-`
+``
 
 Bueno, puertos 22(SSH, nada por ahí) y 80(HTTP)
 
