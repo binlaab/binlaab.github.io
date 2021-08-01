@@ -5,7 +5,7 @@ TheNotebook es una Máquina Linux de nivel medio en la que tendremos que cambiar
 Como siempre, comenzamos escaneando los puertos de la máquina para saber a qué nos enfrentamos. Yo suelo hacer directamente un escaneo de la versión y servicio de los puertos abiertos.
 
 ```
-nmap -p- --open --min-rate 3000 -sS -sC -sV 10.10.10.230 -oN targeted
+> nmap -p- --open --min-rate 3000 -sS -sC -sV 10.10.10.230 -oN targeted
 ```
 
 ```
@@ -31,7 +31,8 @@ Nmap done at Sat Jul 17 13:53:27 2021 -- 1 IP address (1 host up) scanned in 9.4
 Bueno, puertos 22(SSH, nada por ahí) y 80(HTTP)
 
 En el HTTP encontramos una página web con un panel de inicio de sesión y registro. 
-<img src=https://github.com/binlaab/binlaab.github.io/raw/main/images/thenotebook/web.png/>
+![web](https://user-images.githubusercontent.com/71317374/127770899-030fac83-8883-4f42-8e80-7f723f3a5dc1.png)
+
 
 
 Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.
