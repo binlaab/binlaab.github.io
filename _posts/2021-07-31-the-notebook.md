@@ -1,4 +1,3 @@
-![PrtScr capture_2](https://user-images.githubusercontent.com/71317374/127771204-cbe65c3e-e81a-441c-a420-59c03db8e181.jpg)
 Bueno, este es el primer post, voy a intentar no dejar morir la página.(POST EN PROGRESO)
 
 TheNotebook es una Máquina Linux de nivel medio en la que tendremos que cambiar nuestra cookie de sesión a la del todopoderoso admin para conseguir una shell como www-data, robarle la ID a Noah y escapar del contenedor para convertirnos en root.
@@ -36,15 +35,109 @@ En el HTTP encontramos una página web con un panel de inicio de sesión y regis
 
 
 
-Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.![Cookie de usuario](https://user-images.githubusercontent.com/71317374/127771086-62b6d643-4f76-4fc6-b27d-213679667cad.jpg)
+Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token)![Cookie de usuario](https://user-images.githubusercontent.com/71317374/127771086-62b6d643-4f76-4fc6-b27d-213679667cad.jpg)
+ 
+Buscando más sobre esto nos encontramos una página en la que podemos encriptar y desencriptar estas cookies, si desencripto la mía aparece: ![PrtScr capture_2](https://user-images.githubusercontent.com/71317374/127771204-cbe65c3e-e81a-441c-a420-59c03db8e181.jpg)
+
+Veo 2 cosas interesantes: el parámetro 'kid' y 'admin_cap'. El parámetro kid(Key ID), que indica qué clave se ha usado para asegurar ese JWT, busca una clave privada en su puerto 7070, pero podríamos cambiarlo a mi IP de atacante para que verifique el token con mi clave privada. Para generar una clave JWT RS256 (que es el algoritmo que usa esta página web) hay que hacerlo con ssh-keygen
+```
+> ssh-keygen -t rsa -b 4096 -m PEM -f privKey.key
+
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in privKey.key
+Your public key has been saved in privKey.key.pub
+The key fingerprint is:
+SHA256:0TXya6jN+ppi3B2PetAK53kFWu70pb5w74Yr+5WQAC8 root@kali
+The key's randomart image is:
++---[RSA 4096]----+
+|        . . o    |
+|         + + .   |
+|        E + .    |
+|         ooo o   |
+|        S=..=    |
+|      . ++=..... |
+|     . =.B+*.+o  |
+|      + =oBo=o.  |
+|     . .=*o===o  |
++----[SHA256]-----+
+```
+Ahora que tengo la clave, la idea sería copiarla al portapapeles para crear mi JWT con permisos de admin y además compartir un servidor HTTP con python para que compruebe que la clave existe.
+![Generando el JWT](https://user-images.githubusercontent.com/71317374/127781126-6f3aaf2b-f8ee-4413-8626-b81597469d15.png)
+
+Metemos la clave en Storage y... tenemos acceso al panel de administrador!!!
+![permisos de admin](https://user-images.githubusercontent.com/71317374/127781194-9169d3d4-ba62-408f-abe7-7747958c52e3.png)
+
+Si vamos al Admin Panel tenemos 2 apartados, uno para ver notas y otro para subir archivos. En las notas hay 2 muy interesantes: 
+![Nota 1](https://user-images.githubusercontent.com/71317374/127781227-14318fa7-54ae-4cf7-ac83-901ba2973f03.png)
+![Nota 2](https://user-images.githubusercontent.com/71317374/127781240-ff0496a6-9150-4202-ac2c-f683cee0fe3e.png)
+
+Buenooooo, podemos subir archivos PHP con una reverse shell o una backdoor, y además hay backups de algo, lo que es interesante. 
+Vamos a subir una shell en PHP para ejecutar comandos, por qué no?
+![subida de archivo PHP](https://user-images.githubusercontent.com/71317374/127781288-7c1232ac-07c9-4a57-81a4-27335ba31b12.png)
+Visitamos esa URL y mediante el parámetro cmd le especificamos comandos a ejecutar:
+![whoami](https://user-images.githubusercontent.com/71317374/127781309-e0038a75-a5cf-4c63-8582-50f2aa77f389.png)
+
+Y... somos el usuario www-data, y ahora que tenemos ejecución de comandos vamos a entablarnos una Reverse Shell.
+![.\_.](https://user-images.githubusercontent.com/71317374/127781347-ae4d05e2-046a-4786-a528-a0de8fa8d086.png)
+
+.\_. Nos han borrado el archivo, así que toca subirlo de nuevo. Estuve un rato probando y no funcionaban los comandos para enviar shells, así que opté por una reverse shell normal, la de PentestMonkey
+
+![shell](https://user-images.githubusercontent.com/71317374/127781758-eb00cd59-ae32-4934-8070-88a7f952b00c.png)
+
+Y ahí está, soy www-data, así que procedo a hacer un tratamiento de la TTY para no hacer ctrl + c y quedarme sin shell(me ha pasado).
+Recordando la nota de las backups, voy a investigar por ahí, a ver si encuentro algo. Se suelen guardar en /var/backups, y esta máquina no es menos, las backups están ahí. Me las he movido a /dev/shm para trabajar con ellas. 
+
+![backups](https://user-images.githubusercontent.com/71317374/127781901-814953b0-c657-4f65-b3fb-43194e9c5e88.png)
+
+Ojooooo, tenemos acceso a /home/noah en forma de backup, si listamos los contenidos con ls -la hay un directorio .ssh, y todos sabemos qué significa eso, una id_rsa para entrar como noah.
+
+![id_rsa](https://user-images.githubusercontent.com/71317374/127781965-96f43667-6549-4395-887b-2352ffce10d5.png)
+
+Me la copio a mi máquina y me autentico como él por SSH para leer la user flag:
+
+![imagen](https://user-images.githubusercontent.com/71317374/127782047-86046035-d677-449b-acd1-6ea5b9c32bf2.png)
+
+ez.
+Tras entrar a cualquier máquina linux hago sudo -l a ver si pudiera ejecutar como root algún comando, en este caso ¿docker?
+```
+bash-4.4$ sudo -l
+Matching Defaults entries for noah on thenotebook:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User noah may run the following commands on thenotebook:
+    (ALL) NOPASSWD: /usr/bin/docker exec -it webapp-dev01*
 
 ```
- > echo "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NzA3MC9wcml2S2V5LmtleSJ9.eyJ1c2VybmFtZSI6ImJpbmxhYiIsImVtYWlsIjoiYmlubGFiQGJpbi5sYWIuY29tIiwiYWRtaW5fY2FwIjowfQ.jCLQ75FyK5zVS8liquF2Jcou-R8fcTglLsX4yKjrX1gyE24dSvxygtsUGTDLB6yjfX2hsnRvhWNS6aNtLDUez7L2XkV5mdWeHIwLtvlzUnBnVNs0VuebbO4JFEso_KhAyC0VMfuNJCaSCIzYXsl9dtCYpyKrvpBL-HNVPZegw9H70koz0wU33gBTELLCsth3Li1sPn0YXVURy69WHyqYb_tw_5jyVWUHqFLIUzR9K-U_ImqIpF5v9D5q6TuOCB1Efp_A8Lvav4ScIO1LcLyVwncrNp4ERhUtVx9mSgOuj28zm6R3HWy54pk3IHaLBK_d1CLPrptHzsL3yPzf_wsQWyI1AbRyp-nfKYVFi2D_mtm96VMNfOyliL65W8SqzfQ2wa4uw6Fg1eX2S50KKlbfxtShK3_9MXJWxElaO3isctDeUsyoToL44cAvSN-g2XhQJrpjyFGfM1cCOy3ZLh1sHkXuIq4Venv2SnOrBdWp5uKN49XAEWVqHttPqOT0UPLDVY-WNY9cHUdFiFSdrRIVz88kc95oUJO2u3iX_NVA44_-WkmKl49rvx9zi_kQYz_i89rpWmDF6a4aiukU6W_N4KclT5MDqPlr8tgde9osOvUNr5WExUMVuRAS_yNgl90GtNbcihpIaZSIk6QFQ0NOyVDcpa_gk97h_LV2btyq7zU" | base64 -d
- 
- {"typ":"JWT","alg":"RS256","kid":"http://localhost:7070/privKey.key"}
- ```
- 
- Geniaal, ahora tirando de alguna página web que nos deje crear JWT podemos aprovecharlo para conseguir permisos de administrador.
+Vamos a buscar la versión a ver si hubiera algún exploit para esa versión:
+```
+-bash-4.4$ docker --version
+Docker version 18.06.0-ce, build 0ffa825
+```
+Yyyyy justo hay dos de Container Breakout, escapar del contenedor, qué casualidad, no? Ni hecho a posta xD.
+https://github.com/Frichetten/CVE-2019-5736-PoC Yo usé este, que es el primero que me encontré :p
+
+Cambiamos el comando a ejecutar en main.go para darle permiso SUID a la /bin/bash y así entrar como noah por SSH para ejecutar `bash -p` y conseguir ser root y construimos la aplicación para que pueda correr en la máquina con `go build "ldflags -s -w" .` para reducir el peso del archivo y abrimos un servidor HTTP con python para que descargue el ejecutable.
+
+![imagen](https://user-images.githubusercontent.com/71317374/127782389-0e0587a1-0ab7-4bc0-952e-6a9ab07580bc.png)
+
+Ya está en la máquina, ahora solo falta correr el ejecutable y seremos el todopoderoso root.
+
+![root](https://user-images.githubusercontent.com/71317374/127782819-7a208abf-3e82-4cd2-b8f3-272c4999e6c6.png)
+
+Y finalmente, máquina rooteada. Me ha gustado bastante la escalada de privilegios, pero no tanto el user, me ha parecido algo simple, pero la máquina en general bien.
+
+Y recuerda, aguante Metasploit
+
+
+
+
+
+
+
+
+
 
 
 
