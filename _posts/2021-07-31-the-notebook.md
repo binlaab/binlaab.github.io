@@ -35,5 +35,16 @@ En el HTTP encontramos una página web con un panel de inicio de sesión y regis
 
 
 
-Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.
+Fuzzearla no hace nada :/, así que nos registramos y creamos una nueva nota, pero antes abriendo burpsuite para ver como viajan los datos, y descubrimos una cookie de sesión, en concreto una JWT(Json Web Token), encodeada en base64.![Cookir de usuario](https://user-images.githubusercontent.com/71317374/127771086-62b6d643-4f76-4fc6-b27d-213679667cad.jpg)
+
+```
+ > echo "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NzA3MC9wcml2S2V5LmtleSJ9.eyJ1c2VybmFtZSI6ImJpbmxhYiIsImVtYWlsIjoiYmlubGFiQGJpbi5sYWIuY29tIiwiYWRtaW5fY2FwIjowfQ.jCLQ75FyK5zVS8liquF2Jcou-R8fcTglLsX4yKjrX1gyE24dSvxygtsUGTDLB6yjfX2hsnRvhWNS6aNtLDUez7L2XkV5mdWeHIwLtvlzUnBnVNs0VuebbO4JFEso_KhAyC0VMfuNJCaSCIzYXsl9dtCYpyKrvpBL-HNVPZegw9H70koz0wU33gBTELLCsth3Li1sPn0YXVURy69WHyqYb_tw_5jyVWUHqFLIUzR9K-U_ImqIpF5v9D5q6TuOCB1Efp_A8Lvav4ScIO1LcLyVwncrNp4ERhUtVx9mSgOuj28zm6R3HWy54pk3IHaLBK_d1CLPrptHzsL3yPzf_wsQWyI1AbRyp-nfKYVFi2D_mtm96VMNfOyliL65W8SqzfQ2wa4uw6Fg1eX2S50KKlbfxtShK3_9MXJWxElaO3isctDeUsyoToL44cAvSN-g2XhQJrpjyFGfM1cCOy3ZLh1sHkXuIq4Venv2SnOrBdWp5uKN49XAEWVqHttPqOT0UPLDVY-WNY9cHUdFiFSdrRIVz88kc95oUJO2u3iX_NVA44_-WkmKl49rvx9zi_kQYz_i89rpWmDF6a4aiukU6W_N4KclT5MDqPlr8tgde9osOvUNr5WExUMVuRAS_yNgl90GtNbcihpIaZSIk6QFQ0NOyVDcpa_gk97h_LV2btyq7zU" | base64 -d
+ 
+ {"typ":"JWT","alg":"RS256","kid":"http://localhost:7070/privKey.key"}
+ ```
+ 
+ Geniaal, ahora tirando de alguna página web que nos deje crear JWT podemos aprovecharlo para conseguir permisos de administrador.
+
+
+
 
