@@ -1,4 +1,4 @@
-Bueno, este es el primer post, voy a intentar no dejar morir la página.(POST EN PROGRESO)
+Bueno, este es el primer post, voy a intentar no dejar morir la página.
 
 TheNotebook es una Máquina Linux de nivel medio en la que tendremos que cambiar nuestra cookie de sesión a la del todopoderoso admin para conseguir una shell como www-data, robarle la ID a Noah y escapar del contenedor para convertirnos en root.
 
