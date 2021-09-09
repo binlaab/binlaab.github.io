@@ -143,31 +143,34 @@ Service detection performed. Please report any incorrect results at https://nmap
 ## Puertos abiertos
 
 Bueno, tenemos 4 hosts disponibles con algunos puertos abiertos:
-  * 172.16.64.101
+* 172.16.64.101
  
  | Puerto 	| Servicio                           	|
- |--------	|------------------------------------	|
+ |:-------	|:-----------------------------------	|
  | 22     	| SSH, para obtener una shell segura 	|
  | 8080   	| Apache Tomcat                      	|
  | 9080   	| Otro Apache Tomcat                 	|
  | 59919  	| Apache 2.4.18                      	| 
   
 <br>
-  * 172.16.64.140
+
+* 172.16.64.140
 
  | Puerto       | Servicio                              |
  |--------      |------------------------------------   |
  | 80           | Apache 2.4.18                         |
 
 <br>
-  * 172.16.64.182
+
+* 172.16.64.182
 
  | Puerto       | Servicio                              |
  |--------      |------------------------------------   |
  | 22           | SSH, para obtener una shell segura    |
  
 <br>
- * 172.16.64.199
+
+* 172.16.64.199
 
 | Puerto      	| Servicio                              	|
 |-------------	|---------------------------------------	|
