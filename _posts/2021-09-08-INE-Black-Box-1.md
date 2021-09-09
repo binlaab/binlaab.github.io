@@ -157,7 +157,7 @@ Bueno, tenemos 4 hosts disponibles con algunos puertos abiertos:
 * 172.16.64.140
 
  | Puerto       | Servicio                              |
- |--------      |------------------------------------   |
+ |:-------      |:-----------------------------------   |
  | 80           | Apache 2.4.18                         |
 
 <br>
@@ -165,7 +165,7 @@ Bueno, tenemos 4 hosts disponibles con algunos puertos abiertos:
 * 172.16.64.182
 
  | Puerto       | Servicio                              |
- |--------      |------------------------------------   |
+ |:-------      |:-----------------------------------   |
  | 22           | SSH, para obtener una shell segura    |
  
 <br>
@@ -173,7 +173,7 @@ Bueno, tenemos 4 hosts disponibles con algunos puertos abiertos:
 * 172.16.64.199
 
 | Puerto      	| Servicio                              	|
-|-------------	|---------------------------------------	|
+|:------------	|:--------------------------------------	|
 | 135         	| msrpc                                 	|
 | 139         	| SMB, recursos compartidos del sistema 	|
 | 445         	| SMB, recursos compartidos del sistema 	|
