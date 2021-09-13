@@ -21,7 +21,7 @@ layout: null
     {% for post in site.posts limit:36 %}
         {
             "id": "{{ post.url | absolute_url | sha1 }}",
-            "title": {{ post.title | jsonify }},
+            "title": {{ post.title }},
             "summary": {{ post.description | jsonify }},
             "content_text": {{ post.content | strip_html | strip_newlines | jsonify }},
             "content_html": {{ post.content | strip_newlines | jsonify }},

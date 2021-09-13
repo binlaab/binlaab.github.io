@@ -1,3 +1,10 @@
+---
+layout: post
+title: INE: Black Box 1
+---
+
+
+
 Black Box 1 de 3 del Starter Pass de INE. En este caso estamos en un segmento de red 172.16.64.0/24(abarca desde la 172.16.64.0 hasta la 172.16.64.255)
 
 1 - [Reconocimiento inicial](#recon)
