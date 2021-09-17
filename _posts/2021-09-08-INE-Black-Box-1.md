@@ -1,7 +1,11 @@
 ---
 layout: post
-title: INE: Black Box 1
+title: INE - Black Box 1
+description: Black Box 1 de INE
+summary: Black Box 1 de INE
+tags: ine pentesting
 ---
+
 
 
 
