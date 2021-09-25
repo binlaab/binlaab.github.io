@@ -1,0 +1,64 @@
+I"=<p>Schooled es una máquina FreeBSD de nivel medio, creada por <a href="https://app.hackthebox.eu/users/114053">TheCyberGeek</a> en la que hay que descubrir un subdominio oculto, hacerle un lío al profesor para robar su Cookie de sesión, pasar al rol de Manager para explotar una RCE y escalar privilegios mediante un paquete de snap malicioso.</p>
+
+<p>![[2021-09-18-200551_1351x150_scrot.png]]</p>
+
+<p>Según la gente de HackTheBox, la clasificación de la máquina sería algo así:</p>
+
+<p>![[2021-09-18-200649_663x491_scrot.png]]</p>
+
+<p>Bastante real, y va a haber que usar algún que otro exploit y enumerar bien.</p>
+
+<p>1 - <a href="#recon">Reconocimiento inicial</a></p>
+
+<p>2 - <a href="#enum">Enumeración</a></p>
+
+<p>3 - <a href="#exploit">Explotación de la página web</a></p>
+
+<p>4 - <a href="#privesc">Escalada de privilegios</a></p>
+
+<h1 id="recon">[Reconocimiento inicial]</h1>
+
+<p>Como siempre, empezamos con un scan de <code class="language-plaintext highlighter-rouge">nmap</code> para comprobar los puertos abiertos.</p>
+
+<h3 id="escaneo-inicial">Escaneo inicial</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Nmap 7.92 scan initiated Sat Sep 18 20:31:19 2021 as: nmap -p- --open -sS --min-rate 3000 -n -vv -oN ports 10.10.10.234</span>
+Nmap scan report <span class="k">for </span>10.10.10.234
+Host is up, received echo-reply ttl 63 <span class="o">(</span>0.33s latency<span class="o">)</span><span class="nb">.</span>
+Scanned at 2021-09-18 20:31:19 CEST <span class="k">for </span>43s
+Not shown: 56952 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>, 8580 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT      STATE SERVICE REASON
+22/tcp    open  ssh     syn-ack ttl 63
+80/tcp    open  http    syn-ack ttl 63
+33060/tcp open  mysqlx  syn-ack ttl 63
+
+Read data files from: /usr/bin/../share/nmap
+<span class="c"># Nmap done at Sat Sep 18 20:32:02 2021 -- 1 IP address (1 host up) scanned in 43.12 seconds</span>
+</code></pre></div></div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">22</td>
+      <td style="text-align: left">SSH, para obtener una shell segura</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">80</td>
+      <td style="text-align: left">Un servidor HTTP</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">33060</td>
+      <td style="text-align: left">MySQLx</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Ahora que tenemos los puertos abiertos de la máquina, podemos hacer un escaneo más a fondo para identificar que corre cada puerto</p>
+
+:ET

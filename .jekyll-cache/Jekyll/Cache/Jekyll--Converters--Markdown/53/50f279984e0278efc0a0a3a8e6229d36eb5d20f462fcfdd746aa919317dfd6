@@ -1,0 +1,158 @@
+I"l*<p><img src="https://user-images.githubusercontent.com/71317374/134777660-4de10361-6209-4001-8945-4fd44dd01fd2.png" alt="imagen" /></p>
+
+<p>Máquina Linux de nivel medio creada por <a href="https://app.hackthebox.eu/users/159204">polarbearer</a> y <a href="https://app.hackthebox.eu/users/125033">GibParadox</a>. Vamos a darnos un paseo por el servicio SNMP para encontrar un lugar oculto con el que podemos ejecutar comandos, entraremos en un panel de control con una shell expuesta y volveremos a pasearnos por el SNMP para convertirnos en <code class="language-plaintext highlighter-rouge">root</code>.</p>
+
+<p>Veamos como clasifica la gente esta gran máquina:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134777685-3d30f47e-5b3a-4bf4-97eb-41aaba7c35f1.png" alt="imagen" /></p>
+
+<p>No muy real pero va a haber que enumerar a muerte y hacer algo de explotación personalizada, interesante.</p>
+
+<ol>
+  <li><a href="#recon">Reconocimiento inicial</a></li>
+  <li><a href="#snmp">Enumeramos el servicio SNMP</a></li>
+  <li><a href="#rce">Conseguimos RCE</a></li>
+  <li><a href="#shell">Conseguimos acceso</a></li>
+  <li><a href="#root">Rooted!</a></li>
+</ol>
+
+<h1 id="recon">Reconocimiento inicial</h1>
+
+<p>Como siempre, empezamos con un escaneo del poderoso <code class="language-plaintext highlighter-rouge">nmap</code>. Yo he hecho todo el escaneo TCP en el mismo comando, aunque también se puede hacer por separado.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Nmap 7.92 scan initiated Sat Sep 25 17:59:25 2021 as: nmap -p- --open -n -vv -sS --min-rate 4000 -sCV -oN scan 10.10.10.241</span>
+Nmap scan report <span class="k">for </span>10.10.10.241
+Host is up, received echo-reply ttl 63 <span class="o">(</span>0.28s latency<span class="o">)</span><span class="nb">.</span>
+Scanned at 2021-09-25 17:59:26 CEST <span class="k">for </span>224s
+Not shown: 65494 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>, 38 filtered tcp ports <span class="o">(</span>admin-prohibited<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT     STATE SERVICE         REASON         VERSION
+22/tcp   open  ssh             syn-ack ttl 63 OpenSSH 8.0 <span class="o">(</span>protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   3072 6f:c3:40:8f:69:50:69:5a:57:d7:9c:4e:7b:1b:94:96 <span class="o">(</span>RSA<span class="o">)</span>
+| ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPRtC3Zd+DPBo1Raur/oVw/vz3BFbDkm6wmyb+E+0kBcgsDzm+UZqGn3u+rbI9L7PtNCIOTHa4j0Qs6fD9CvWa9xl1PXPQEI4X8UIfiDKduW+NhC0tRtfKzBSIR0XE+n2MjNCLM6pAR4xwhPZcpkXQmwurayT3OOHPV5QpOdSfzp0Zv56sBn3FmYe9j6fuhRFFL2x6Q8NfHOFkd4tAwkcCB1EebD0S/1ajB+TO6WeMOIHEU9HAAyg2LDzUKh0pzfFdK2MQHzKrGcFe3kOalz/dRJApa9wzUgq6iDbQvstDucPFLmvu8Y4YKFg1trKnf4Z2kopSUn0kKOxBROddoKOBdTyE309PF1b/Jo4ziDVVkRvPIHh06Se7NRVzbRtO8mBTFbi/Efag8QtLHeLDnF5SJj5SdTBiMiLvyGNWs3UySweOazyijw5bQtlgKbZHy0tLsjOCWjTuXGHAS3pHkkgSYKfr/NwWDsVQwHgCf1M7EZ23Uxww/qE6vRWbHStc6gM<span class="o">=</span>
+|   256 c2:6f:f8:ab:a1:20:83:d1:60:ab:cf:63:2d:c8:65:b7 <span class="o">(</span>ECDSA<span class="o">)</span>
+| ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBASBJvHyFZwgmAuf2qWsMHborC5pS152XK8TVyTESkcPGWHqVAa/9rmFNvMuiMvBTPWhPq2+b5apFURHdxW2S5Q<span class="o">=</span>
+|   256 6b:65:6c:a6:92:e5:cc:76:17:5a:2f:9a:e7:50:c3:50 <span class="o">(</span>ED25519<span class="o">)</span>
+|_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJmDbvdFwHALNAnJDXuRD6aO9yppoVnKbTLbUmn6CWUn
+80/tcp   open  http            syn-ack ttl 63 nginx 1.14.1
+|_http-title: Test Page <span class="k">for </span>the Nginx HTTP Server on Red Hat Enterprise Linux
+| http-methods: 
+|_  Supported Methods: GET HEAD
+|_http-server-header: nginx/1.14.1
+9090/tcp open  ssl/zeus-admin? syn-ack ttl 63
+| fingerprint-strings: 
+|   GetRequest, HTTPOptions: 
+|     HTTP/1.1 400 Bad request
+|     Content-Type: text/html<span class="p">;</span> <span class="nv">charset</span><span class="o">=</span>utf8
+|     Transfer-Encoding: chunked
+|     X-DNS-Prefetch-Control: off
+|     Referrer-Policy: no-referrer
+|     X-Content-Type-Options: nosniff
+|     Cross-Origin-Resource-Policy: same-origin
+|     &lt;<span class="o">!</span>DOCTYPE html&gt;
+|     &lt;html&gt;
+|     &lt;<span class="nb">head</span><span class="o">&gt;</span>
+|     &lt;title&gt;
+|     request
+|     &lt;/title&gt;
+|     &lt;meta http-equiv<span class="o">=</span><span class="s2">"Content-Type"</span> <span class="nv">content</span><span class="o">=</span><span class="s2">"text/html; charset=utf-8"</span><span class="o">&gt;</span>
+|     &lt;meta <span class="nv">name</span><span class="o">=</span><span class="s2">"viewport"</span> <span class="nv">content</span><span class="o">=</span><span class="s2">"width=device-width, initial-scale=1.0"</span><span class="o">&gt;</span>
+|     &lt;style&gt;
+|     body <span class="o">{</span>
+|     margin: 0<span class="p">;</span>
+|     font-family: <span class="s2">"RedHatDisplay"</span>, <span class="s2">"Open Sans"</span>, Helvetica, Arial, sans-serif<span class="p">;</span>
+|     font-size: 12px<span class="p">;</span>
+|     line-height: 1.66666667<span class="p">;</span>
+|     color: <span class="c">#333333;</span>
+|     background-color: <span class="c">#f5f5f5;</span>
+|     border: 0<span class="p">;</span>
+|     vertical-align: middle<span class="p">;</span>
+|     font-weight: 300<span class="p">;</span>
+|_    margin: 0 0 10p
+| ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>dms-pit.htb/organizationName<span class="o">=</span>4cd9329523184b0ea52ba0d20a1a6f92/countryName<span class="o">=</span>US
+| Subject Alternative Name: DNS:dms-pit.htb, DNS:localhost, IP Address:127.0.0.1
+| Issuer: <span class="nv">commonName</span><span class="o">=</span>dms-pit.htb/organizationName<span class="o">=</span>4c9329523184b0ea52ba0d20a1a6f92/countryName<span class="o">=</span>US/organizationalUnitName<span class="o">=</span>ca-5763051739999573755
+| Public Key <span class="nb">type</span>: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2020-04-16T23:29:12
+| Not valid after:  2030-06-04T16:09:12
+| MD5:   0146 4fba 4de8 5bef 0331 e57e 41b4 a8ae
+| SHA-1: 29f2 edc3 7ae9 0c25 2a9d 3feb 3d90 bde6 dfd3 eee5
+| <span class="nt">-----BEGIN</span> CERTIFICATE-----
+| MIIEpjCCAo6gAwIBAgIISl2h4yex5dEwDQYJKoZIhvcNAQELBQAwbzELMAkGA1UE
+| BhMCVVMxKTAnBgNVBAoMIDRjZDkzMjk1MjMxODRiMGVhNTJiYTBkMjBhMWE2Zjky
+| MR8wHQYDVQQLDBZjYS01NzYzMDUxNzM5OTk5NTczNzU1MRQwEgYDVQQDDAtkbXMt
+| cGl0Lmh0YjAeFw0yMDA0MTYyMzI5MTJaFw0zMDA2MDQxNjA5MTJaME4xCzAJBgNV
+| BAYTAlVTMSkwJwYDVQQKDCA0Y2Q5MzI5NTIzMTg0YjBlYTUyYmEwZDIwYTFhNmY5
+| MjEUMBIGA1UEAwwLZG1zLXBpdC5odGIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+| ggEKAoIBAQDZLaNRUf3BXYCd+Df9XZwMBmIwGzy/yX+9fPY6zGXYEYS7SeH9xZ7p
+| GTUQMfk30Olb7rzftCKx9xSMHyoCJIAWFeVDV9vxJbGaEqFRvKHPeqcpQbRAKoqL
+| xWaqbDZCXsBtTVYEwpRHvJ/GoGEWAQSbP1zkHzvVBkHuXE7Sj0zlW5NaBjvG/wEe
+| wAB6crwnIYoqC550cMPritvjLwijk9nhwaPJ462anhJR5vFBvkR4nqD3mhIytUOb
+| YMsfVoI0FiXtlBdu1ApABxtIdQgkY94eRAaMTkQ4Je0a8G5PlRZ20xCdqHb3xIZV
+| 1mphZehkUeN0MzgEloL5TX8Zab+LZW+ZAgMBAAGjZzBlMA4GA1UdDwEB/wQEAwIF
+| oDAJBgNVHRMEAjAAMCcGA1UdEQQgMB6CC2Rtcy1waXQuaHRigglsb2NhbGhvc3SH
+| BH8AAAEwHwYDVR0jBBgwFoAUc8ssOet8O2a3+F2If4eQixSV7PwwDQYJKoZIhvcN
+| AQELBQADggIBAG8kou51q78wdzxiPejMv9qhWlBWW3Ly5TvAav07ATx8haldEHvT
+| LlFNGPDFAvJvcKguiHnGrEL9Im5GDuzi31V4fE5xjzWJdkepXasK7NzIciC0IwgP
+| 7G1j11OUJOt9pmDRu2FkTHsSdr5b57P4uXS8rRF5lLCEafuemk6ORXa07b9xSrhC
+| 3pWl22RtVlTFQ3wX8OsY0O3w5UUz8T/ezhKYUoM/mYQu+ICTAltlX4xae6PGauCh
+| uaOY+/dPtM17KfHSbnCS1ZnR0oQ4BXJuYNfOR/C59L5B7TWzaOx5n1TD6JHOzrDu
+| LxjO0OTeFaBRXL/s2Z5zNPTpZVnHyKEmHr5ZObjR6drDGqXfShPq5y70RfE28Pxm
+| VTCdK4MCqDkELIlXrxzHQ/IPC8pxho6WEQsY80xZ1nXbLshlymh6clgblOetToZT
+| HObIkEoPBtszUssFmWSN5hd4JcuyqSbJhichYtFQRASb2I4jWdP831LPir+MCGQv
+| iAnieBF8zYus7kboTwfXmBGUt6r6eNE1yr4ZXPxOZoWq2ob6aAeLp2mqif+jgUSk
+| fiG9oiAoyXWxw5pLfYHxVQGY+rGbjOs8gCAxBaTPt6dCkHZy/nU8PNZtV6QC4OME
+| LI/sYtmG8XENdQhsLM2sewOMvv5rgsZ8SlX05Bw8C1xuq5Rg1KewCjlY
+|_-----END CERTIFICATE-----
+|_ssl-date: TLS randomness does not represent <span class="nb">time
+</span>1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port9090-TCP:V<span class="o">=</span>7.92%T<span class="o">=</span>SSL%I<span class="o">=</span>7%D<span class="o">=</span>9/25%Time<span class="o">=</span>614F47BF%P<span class="o">=</span>x86_64-pc-linux-gn
+<span class="nt">--</span> no nos interesa :p <span class="nt">--</span>
+SF:<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20margin:<span class="se">\x</span>200<span class="se">\x</span>200<span class="se">\x</span>2010p<span class="s2">");
+
+Read data files from: /usr/bin/../share/nmap
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sat Sep 25 18:03:10 2021 -- 1 IP address (1 host up) scanned in 224.81 seconds
+</span></code></pre></div></div>
+
+<h3 id="pequeña-explicación-de-los-parámetros-de-nmap">Pequeña explicación de los parámetros de nmap</h3>
+<ul>
+  <li>-p-: Escanea todos los puertos.</li>
+  <li>–open: Solo muestra los que están abiertos.</li>
+  <li>–min-rate: Envía un mínimo de paquetes por segundo para que vaya más rápido, con un número muy alto, como 10000, puede dar falsos positivos o negativos.</li>
+  <li>-sS: TCP SYN Port Scan, agiliza un poco el escaneo ya que no espera a que se complete el <a href="https://networksigma.com/tcp-3-way-handshake/">Three-Way Handshake</a>.</li>
+  <li>-Pn: Deshabilita el descubrimiento de host mediante el protocolo ARP a la máquina para comprobar si está activa (no confundir con pene, que luego pasan cosas).</li>
+  <li>-n: Deshabilita la resolución DNS.</li>
+  <li>-v: Muestra los puertos a medida que los descubre.</li>
+  <li>-oN: Guarda el escaneo como aparece por consola.</li>
+  <li>-sCV: Lanza unos scripts básicos de enumeración y detecta la versión que corre cada servicio.</li>
+</ul>
+
+<p>Bueno, pues tenemos estos puertos abiertos:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">22</td>
+      <td style="text-align: left">SSH, para obtener una shell segura</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">80</td>
+      <td style="text-align: left">Nginx 1.14.1</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">9090</td>
+      <td style="text-align: left">Se supone que zeus-admin, pero ni nmap lo sabe</td>
+    </tr>
+  </tbody>
+</table>
+:ET

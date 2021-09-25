@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://binlaab.github.io/sitemap.xml
+Sitemap: http://0.0.0.0:80/sitemap.xml
